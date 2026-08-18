@@ -1,23 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Zinra privacy</title>
-  <link rel="stylesheet" href="ui.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · Zinra</title>
+  <meta name="description" content="Zinra records, edits, and exports on your computer. No account, no analytics, no upload.">
+  <link rel="icon" href="icons/icon32.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
-    .legal { max-width: 640px; margin: 0 auto; padding: 32px 20px 64px; }
-    .legal h1 { font-size: 28px; margin-bottom: 8px; }
-    .legal h2 { font-size: 16px; margin: 28px 0 8px; }
-    .legal p, .legal li { color: var(--muted); }
-    .legal ul { padding-left: 18px; }
+    :root {
+      --bg: #f3efe6;
+      --ink: #1a1916;
+      --ink-dim: #6b6459;
+      --line: rgba(26, 25, 22, 0.13);
+      --accent-fill: #e0b44a;
+      --sans: Inter, "Segoe UI", system-ui, sans-serif;
+      --serif: Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #171613;
+        --ink: #f3efe6;
+        --ink-dim: #a39c8d;
+        --line: rgba(243, 239, 230, 0.12);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      line-height: 1.65;
+    }
+    a { color: inherit; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 28px 24px 80px; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-family: var(--sans);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 48px;
+    }
+    .brand svg { width: 26px; height: 26px; }
+    h1 { font-family: var(--sans); font-size: 2rem; letter-spacing: -0.03em; margin: 0 0 8px; }
+    h2 { font-family: var(--sans); font-size: 1.05rem; margin: 32px 0 8px; }
+    .meta { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--ink-dim); margin-bottom: 28px; }
+    p, li { color: var(--ink-dim); }
+    ul { padding-left: 18px; }
+    .back { display: inline-block; margin-top: 40px; font-family: var(--sans); font-weight: 700; font-size: 14px; }
   </style>
 </head>
 <body>
-  <article class="legal">
-    <p class="eyebrow">Zinra</p>
+  <article class="wrap">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="3.5" y="5.5" width="20" height="15" rx="3.5" stroke="var(--accent-fill)" stroke-width="2"/>
+        <rect x="8.5" y="11.5" width="20" height="15" rx="3.5" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      Zinra
+    </a>
     <h1>Privacy</h1>
-    <p>Last updated: 16 August 2026</p>
+    <p class="meta">Last updated: 16 August 2026</p>
     <p>Zinra records the Chrome tab you choose, then edits and exports that recording on your computer. It is built to work offline after capture.</p>
 
     <h2>What Zinra accesses</h2>
@@ -39,7 +88,8 @@
     <p><code>tabCapture</code>, <code>tabs</code>, <code>activeTab</code>, <code>scripting</code>, <code>storage</code>, and <code>downloads</code> exist so Zinra can record a tab, place zooms, remember settings, and save a file. Host access is used only to inject the recorder helper on the tab you film.</p>
 
     <h2>Contact</h2>
-    <p>For privacy questions, use the Chrome Web Store support email listed on the Zinra listing.</p>
+    <p>For privacy questions, use the Chrome Web Store support email listed on the Zinra listing, or open an issue on <a href="https://github.com/jafetmora79-lab/Zinra-Screen-Recorder">GitHub</a>.</p>
+    <a class="back" href="index.html">← Back to Zinra</a>
   </article>
 </body>
 </html>

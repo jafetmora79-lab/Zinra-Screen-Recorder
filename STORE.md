@@ -23,7 +23,7 @@ Pro (when billing ships)
 • 60fps export
 • Keep using the same editor
 
-Privacy: recordings stay on your machine. See privacy.html (host this page at a public HTTPS URL and paste that URL into the store listing).
+Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then paste `https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/privacy.html` into the store listing. The marketing site is `index.html` at the same origin.
 
 **Single purpose:** Screen recording and timeline editing for Chrome tabs.
 
@@ -44,11 +44,13 @@ Privacy: recordings stay on your machine. See privacy.html (host this page at a 
 
 ## Store checklist
 
-1. Host `privacy.html` (GitHub Pages is enough) and set Privacy policy URL
-2. Bump the version in `manifest.json`, then run `installer\build-store-package.bat` — it packages just the runtime files (no installer, docs, or unused brand assets) into `dist\zinra-<version>.zip`
-3. Load unpacked from `dist\zinra-package`, record a demo, capture screenshots
-4. Set support email
-5. Submit `dist\zinra-<version>.zip`. Do not mention other products in the listing.
+1. Turn on GitHub Pages: repo **Settings → Pages → Deploy from a branch → `main` → `/` (root)**. The site is `https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/` and the privacy URL is that path plus `privacy.html`.
+2. When the Chrome Web Store listing is live, paste the store URL into `STORE_URL` at the bottom of `index.html` so every Get Zinra button points at it.
+3. Set Privacy policy URL on the listing to the GitHub Pages `privacy.html` URL.
+4. Bump the version in `manifest.json`, then run `installer\build-store-package.bat` — it packages just the runtime files (no installer, docs, or unused brand assets) into `dist\zinra-<version>.zip`
+5. Load unpacked from `dist\zinra-package`, record a demo, capture screenshots
+6. Set support email
+7. Submit `dist\zinra-<version>.zip`. Do not mention other products in the listing.
 
 ## Monetization plan
 
