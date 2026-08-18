@@ -16,11 +16,12 @@ Free
 • Auto zoom on clicks (Standard 1.50×)
 • Zoom, speed, cut, and trim
 • Add your own voiceover or music track in the editor
-• Export up to 1080p
+• 2 free exports, no account needed
 
-Pro (when billing ships)
-• 1440p and 4K export
-• 60fps export
+Pro — $7/month or $49/year
+• Unlimited exports
+• 1440p and 4K export, 60fps export
+• Hand, Ring, and Crosshair cursor styles
 • Keep using the same editor
 
 Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then paste `https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/privacy.html` into the store listing. The marketing site is `index.html` at the same origin.
@@ -54,21 +55,23 @@ Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then pa
 
 ## Monetization plan
 
-Ship Free on the store first. Pro is already labeled in the quality menu; `ENFORCE_PRO` in `settings.js` is **false** so demos and the first listing are unlocked.
+Record and edit are unlimited on Free. Exporting is the gate.
 
-**Free forever**
-- Record + editor
-- Export 720p / 1080p 30fps
-- Standard 1.50× zoom
+**Free**
+- Record + editor, no account
+- 2 exports total, then Pro is required to export more
+- Up to 1080p 30fps, Arrow/Dot/Spotlight cursor styles
 
 **Pro — $7 / month or $49 / year**
+- Unlimited exports
 - 1080p60, 1440p, 4K
+- Hand, Ring, Crosshair cursor styles
 - Future: saved presets, batch export
 
-**How to charge (after listing is live)**
-1. Stripe Checkout or Lemon Squeezy for a license key
-2. Store the key in `chrome.storage.sync` (`pro: true`)
-3. Set `ENFORCE_PRO = true`
-4. Locked qualities show the Pro badge and a short “Unlock Pro” note — no fake paywall in the first release
+**Status: `ENFORCE_PRO` is now `true`** — the gates are live in code (`settings.js`: `FREE_EXPORT_LIMIT`, `canExport`, `isProLocked`). What's still missing before this can actually make money:
 
-Do not put a credit-card form inside the extension. Open a checkout tab. Keep the editor usable on Free so the listing does not feel gated.
+1. **A real Lemon Squeezy product.** Create a Zinra product at lemonsqueezy.com with two variants (Monthly $7, Yearly $49), turn on **license keys** for it (Product → License Keys). The extension's paywall (`editor.js` → `activateLicense`) already calls Lemon Squeezy's public License API (`/v1/licenses/activate`) — no code change needed once the product exists, any key it issues will just work.
+2. **A checkout link.** Put the product's Lemon Squeezy checkout URL into `paywallBuyBtn`'s `href` in `recorder.html` (currently points at the landing page's pricing section as a placeholder) so “Get Zinra Pro” actually leads to a place to pay.
+3. **Delivering the key after purchase.** Lemon Squeezy emails the license key automatically on purchase — the buyer pastes it into the paywall's “License key” field, which activates it and sets `pro: true` in `chrome.storage.sync`. No extra delivery mechanism needed.
+
+Do not put a credit-card form inside the extension itself — Lemon Squeezy's hosted checkout handles payment entirely outside the extension.

@@ -69,6 +69,7 @@
             <option value="4k">4K · Pro</option>
           </select>
         </label>
+        <span id="exportCreditsNote" class="export-credits hidden"></span>
         <button id="exportBtn" class="btn primary" type="button">
           <img class="ui-icon" src="icons/svg/export.svg" alt="" />
           <span class="btn-label">Export</span>
@@ -436,6 +437,33 @@
         <div class="export-progress">
           <div id="exportProgressBar" class="export-progress-fill"></div>
         </div>
+      </div>
+    </div>
+
+    <div id="paywallOverlay" class="export-overlay hidden">
+      <div class="export-modal paywall-modal">
+        <button id="paywallCloseBtn" class="paywall-close" type="button" title="Close">×</button>
+        <p class="eyebrow">Free plan</p>
+        <h3 class="paywall-title">You've used both free exports</h3>
+        <p class="paywall-copy">Recording and editing stay free forever. Exporting more takes Zinra Pro.</p>
+        <div class="paywall-plans">
+          <div class="paywall-plan">
+            <p class="paywall-plan-price">$7<span>/mo</span></p>
+            <p class="paywall-plan-name">Monthly</p>
+          </div>
+          <div class="paywall-plan">
+            <p class="paywall-plan-price">$49<span>/yr</span></p>
+            <p class="paywall-plan-name">Yearly</p>
+          </div>
+        </div>
+        <a id="paywallBuyBtn" class="btn primary" href="https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/#pricing" target="_blank" rel="noopener">Get Zinra Pro</a>
+        <p class="paywall-divider">Already have a license?</p>
+        <label class="field">
+          <span>License key</span>
+          <input id="licenseKeyInput" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+        </label>
+        <button id="activateLicenseBtn" class="btn ghost" type="button">Activate license</button>
+        <p id="licenseStatus" class="license-status"></p>
       </div>
     </div>
   </section>

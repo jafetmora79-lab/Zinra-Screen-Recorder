@@ -9,7 +9,7 @@ import {
 import { autoZoomClips } from "./camera-path.js";
 import { resolveExportSize } from "./encode.js";
 import { renderOfflineExport } from "./export-render.js";
-import { isProLocked, CURSOR_STYLES } from "./settings.js";
+import { isProLocked, CURSOR_STYLES, canExport, remainingFreeExports } from "./settings.js";
 
 const DEPTH_PRESETS = {
   shallow: 1.25,
@@ -137,6 +137,28 @@ function attachStepper(input, { step = 0.05, min = 0, max = Infinity } = {}) {
   addRepeatingButton("down", -step);
 }
 
+// Lemon Squeezy's License API: activating ties the key to this browser
+// install (an "instance") and confirms it's a real, unused/valid key.
+async function activateLicense(key) {
+  const trimmed = key.trim();
+  if (!trimmed) throw new Error("Enter a license key.");
+  let res;
+  try {
+    res = await fetch("https://api.lemonsqueezy.com/v1/licenses/activate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ license_key: trimmed, instance_name: "Zinra Chrome Extension" })
+    });
+  } catch {
+    throw new Error("Could not reach the license server. Check your connection.");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.activated) {
+    throw new Error(data.error || "That license key didn't work. Check it and try again.");
+  }
+  return { key: trimmed, instanceId: data.instance?.id || null };
+}
+
 async function decodeAudioFile(file) {
   const ab = await file.arrayBuffer();
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -184,7 +206,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   const cutTrack = qs("cutTrack");
   const audioTrack = qs("audioTrack");
   const stageFrame = qs("stageFrame");
-  const viewportEl = qs("viewport");
   const playhead = qs("playhead");
   const ctx = canvas.getContext("2d", { alpha: false, colorSpace: "srgb" });
 
@@ -1345,15 +1366,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   });
 
   const cursorTiles = [];
-  function updateCanvasNativeCursor() {
-    // A synthetic cursor drawn on the canvas competes visually with your
-    // real mouse pointer hovering the same area - hide the real one so
-    // scrubbing/previewing never looks like a doubled cursor. This has to
-    // be set on the whole viewport (not just the canvas) - fast pointer
-    // moves cross the canvas's own edge often enough that a canvas-only
-    // rule let the native arrow flash back in mid-glide.
-    viewportEl.style.cursor = cursorStyle !== "none" ? "none" : "";
-  }
   function refreshCursorPicker() {
     for (const tile of cursorTiles) {
       tile.el.classList.toggle("selected", tile.id === cursorStyle);
@@ -1373,7 +1385,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     qs("cursorProNote").classList.toggle("hidden", !isProLocked(cursorStyle, settings, CURSOR_STYLES));
     qs("cursorColorField").classList.toggle("hidden", cursorStyle === "none");
-    updateCanvasNativeCursor();
   }
   function buildCursorPicker() {
     const wrap = qs("cursorPicker");
@@ -1500,6 +1511,54 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
   }
 
+  function updateExportCredits() {
+    const note = qs("exportCreditsNote");
+    if (!note) return;
+    if (settings.pro) {
+      note.classList.add("hidden");
+      return;
+    }
+    const left = remainingFreeExports(settings);
+    note.textContent = left > 0 ? `${left} free export${left === 1 ? "" : "s"} left` : "No free exports left";
+    note.classList.remove("hidden");
+  }
+  updateExportCredits();
+
+  function showPaywall() {
+    qs("licenseStatus").textContent = "";
+    qs("licenseStatus").className = "license-status";
+    qs("paywallOverlay").classList.remove("hidden");
+  }
+  function hidePaywall() {
+    qs("paywallOverlay").classList.add("hidden");
+  }
+  qs("paywallCloseBtn").addEventListener("click", hidePaywall);
+  qs("activateLicenseBtn").addEventListener("click", async () => {
+    const btn = qs("activateLicenseBtn");
+    const status = qs("licenseStatus");
+    btn.disabled = true;
+    status.className = "license-status";
+    status.textContent = "Activating…";
+    try {
+      const { key } = await activateLicense(qs("licenseKeyInput").value);
+      settings.pro = true;
+      settings.licenseKey = key;
+      await chrome.storage.sync.set({ pro: true, licenseKey: key }).catch(() => {});
+      status.className = "license-status success";
+      status.textContent = "Activated — thanks for going Pro.";
+      updateExportCredits();
+      setTimeout(() => {
+        hidePaywall();
+        qs("exportBtn").click();
+      }, 700);
+    } catch (err) {
+      status.className = "license-status error";
+      status.textContent = err.message || "Could not activate that key.";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   qs("exportBtn").addEventListener("click", async () => {
     if (exporting || !duration) return;
     if (!video.videoWidth || !video.videoHeight) {
@@ -1519,6 +1578,10 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     if (isProLocked(cursorStyle, settings, CURSOR_STYLES)) {
       setExportStatus("That cursor style is Pro. Pick Arrow, Dot, or Hidden, or unlock Pro.");
+      return;
+    }
+    if (!canExport(settings)) {
+      showPaywall();
       return;
     }
 
@@ -1588,6 +1651,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         (result.hasAudio ? "." : " (silent)."),
         1
       );
+      if (!settings.pro) {
+        settings.exportCount = (Number(settings.exportCount) || 0) + 1;
+        chrome.storage.sync.set({ exportCount: settings.exportCount }).catch(() => {});
+        updateExportCredits();
+      }
     } catch (err) {
       setExportStatus(err.message || "Export failed.");
     } finally {

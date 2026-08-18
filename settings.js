@@ -6,11 +6,17 @@ export const DEFAULTS = {
   quality: "1080p",
   cursorStyle: "none",
   cursorColor: "#e0b44a",
-  pro: false
+  pro: false,
+  licenseKey: null,
+  exportCount: 0
 };
 
-// Flip this when Chrome Web Store billing / license keys ship.
-export const ENFORCE_PRO = false;
+// Free accounts get a fixed number of exports total, then need a license
+// to keep exporting. Recording and editing stay unlimited either way -
+// only the export step is gated.
+export const FREE_EXPORT_LIMIT = 2;
+
+export const ENFORCE_PRO = true;
 
 export const QUALITY_PRESETS = {
   auto: { id: "auto", label: "Match recording", maxHeight: Infinity, fps: null, pro: false },
@@ -46,6 +52,9 @@ export function migrateSettings(stored = {}) {
   if (!QUALITY_PRESETS[next.quality]) next.quality = DEFAULTS.quality;
   if (!CURSOR_STYLES[next.cursorStyle]) next.cursorStyle = DEFAULTS.cursorStyle;
   if (!isHexColor(next.cursorColor)) next.cursorColor = DEFAULTS.cursorColor;
+  next.pro = Boolean(next.pro);
+  const count = Number(next.exportCount);
+  next.exportCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   return next;
 }
 
@@ -53,4 +62,13 @@ export function isProLocked(id, settings, registry = QUALITY_PRESETS) {
   if (!ENFORCE_PRO) return false;
   const preset = registry[id];
   return Boolean(preset?.pro) && !settings?.pro;
+}
+
+export function remainingFreeExports(settings) {
+  return Math.max(0, FREE_EXPORT_LIMIT - (Number(settings?.exportCount) || 0));
+}
+
+export function canExport(settings) {
+  if (!ENFORCE_PRO) return true;
+  return Boolean(settings?.pro) || remainingFreeExports(settings) > 0;
 }

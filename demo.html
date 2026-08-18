@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northlane</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --line: #e2e6ea;
+    --ink: #1c2430;
+    --ink-dim: #6b7684;
+    --accent: #3f66e0;
+    --accent-dim: #eaeeff;
+    --green: #1f9d64;
+    --amber: #c98a1f;
+    --red: #d94f4f;
+    --radius: 12px;
+    --font: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 14px;
+  }
+  button, input, select { font-family: inherit; font-size: inherit; }
+
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  .side {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 4px 8px 22px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #4d74e8, #7a5cf0);
+    flex: 0 0 auto;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    color: var(--ink-dim);
+    font-weight: 600;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+  }
+  .nav-item:hover { background: #f0f2f5; }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent); }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.55; flex: 0 0 auto; }
+
+  .main { padding: 26px 34px 60px; max-width: 980px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .topbar h1 { margin: 0; font-size: 21px; letter-spacing: -0.01em; }
+  .topbar p { margin: 4px 0 0; color: var(--ink-dim); font-size: 13px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #f0a13a, #e86d5f);
+    flex: 0 0 auto;
+  }
+
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .btn:hover { background: #f4f5f7; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.06); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat-label { margin: 0; color: var(--ink-dim); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { margin: 6px 0 4px; font-size: 24px; font-weight: 750; letter-spacing: -0.02em; }
+  .stat-delta { margin: 0; font-size: 12px; font-weight: 650; }
+  .stat-delta.up { color: var(--green); }
+  .stat-delta.down { color: var(--red); }
+
+  .panel-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
+  .panel-card h2 { margin: 0 0 14px; font-size: 15px; }
+
+  .chart { display: flex; align-items: flex-end; gap: 10px; height: 110px; padding-top: 10px; }
+  .bar { flex: 1; background: linear-gradient(180deg, #6d8bf0, var(--accent)); border-radius: 5px 5px 0 0; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-dim); padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 11px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .pill.active { background: #e6f7ec; color: var(--green); }
+  .pill.paused { background: #fdf0e3; color: var(--amber); }
+
+  .field-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-width: 360px; }
+  .field-row label { font-size: 12.5px; font-weight: 650; color: var(--ink-dim); }
+  .field-row input[type="text"], .field-row input[type="email"], .field-row select {
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfbfc;
+    color: var(--ink);
+    outline: none;
+  }
+  .field-row input:focus, .field-row select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); max-width: 420px; }
+  .toggle-row:last-child { border-bottom: 0; }
+  .toggle-row-copy strong { display: block; font-size: 13.5px; }
+  .toggle-row-copy span { color: var(--ink-dim); font-size: 12px; }
+  .switch { width: 38px; height: 22px; border-radius: 99px; background: #d9dee4; position: relative; cursor: pointer; border: 0; flex: 0 0 auto; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+  .switch.on { background: var(--accent); }
+  .switch.on::after { transform: translateX(16px); }
+
+  .team-list { display: flex; flex-direction: column; gap: 2px; }
+  .team-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .team-row:last-child { border-bottom: 0; }
+  .team-avatar { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; }
+  .team-name { font-weight: 650; font-size: 13.5px; }
+  .team-role { color: var(--ink-dim); font-size: 12px; }
+  .team-row .btn { margin-left: auto; padding: 6px 12px; font-size: 12.5px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(20, 24, 30, 0.42);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--panel);
+    border-radius: 14px;
+    width: min(380px, 90vw);
+    padding: 22px 22px 20px;
+    box-shadow: 0 30px 70px rgba(20,24,30,0.25);
+  }
+  .modal h3 { margin: 0 0 4px; font-size: 16px; }
+  .modal p.hint { margin: 0 0 16px; color: var(--ink-dim); font-size: 12.5px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1c2430; color: #fff; padding: 12px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      Northlane
+    </div>
+    <button class="nav-item active" data-view="dashboard"><span class="nav-dot"></span>Dashboard</button>
+    <button class="nav-item" data-view="team"><span class="nav-dot"></span>Team</button>
+    <button class="nav-item" data-view="settings"><span class="nav-dot"></span>Settings</button>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSub">Here's how projects are trending this week.</p>
+      </div>
+      <span class="avatar"></span>
+    </div>
+
+    <section id="view-dashboard" class="view active">
+      <div class="stat-grid">
+        <div class="card">
+          <p class="stat-label">Active projects</p>
+          <p class="stat-value" id="statProjects">12</p>
+          <p class="stat-delta up">▲ 2 this week</p>
+        </div>
+        <div class="card">
+          <p class="stat-label">Tasks completed</p>
+          <p class="stat-value">184</p>
+          <p class="stat-delta up">▲ 9%</p>
+        </div>
+        <div class="card">
+          <p class="stat-label">Overdue</p>
+          <p class="stat-value">3</p>
+          <p class="stat-delta down">▼ 1</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>Weekly output</h2>
+        <div class="chart">
+          <div class="bar" style="height: 40%"></div>
+          <div class="bar" style="height: 65%"></div>
+          <div class="bar" style="height: 50%"></div>
+          <div class="bar" style="height: 80%"></div>
+          <div class="bar" style="height: 58%"></div>
+          <div class="bar" style="height: 92%"></div>
+          <div class="bar" style="height: 70%"></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px;">
+          <h2 style="margin:0;">Projects</h2>
+          <button class="btn primary" id="newProjectBtn">+ New project</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Owner</th><th>Status</th></tr>
+          </thead>
+          <tbody id="projectRows">
+            <tr><td>Harbor redesign</td><td>Mina K.</td><td><span class="pill active">Active</span></td></tr>
+            <tr><td>Q3 onboarding flow</td><td>Denis O.</td><td><span class="pill active">Active</span></td></tr>
+            <tr><td>Billing migration</td><td>Priya S.</td><td><span class="pill paused">Paused</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-team" class="view">
+      <div class="panel-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 6px;">
+          <h2 style="margin:0;">Team members</h2>
+          <button class="btn primary" id="inviteBtn">Invite member</button>
+        </div>
+        <div class="team-list" id="teamList">
+          <div class="team-row">
+            <span class="team-avatar" style="background: linear-gradient(135deg,#6d8bf0,#3f66e0);"></span>
+            <div><div class="team-name">Mina Kovac</div><div class="team-role">Design lead</div></div>
+            <button class="btn">Manage</button>
+          </div>
+          <div class="team-row">
+            <span class="team-avatar" style="background: linear-gradient(135deg,#f0a13a,#e86d5f);"></span>
+            <div><div class="team-name">Denis Ortiz</div><div class="team-role">Product</div></div>
+            <button class="btn">Manage</button>
+          </div>
+          <div class="team-row">
+            <span class="team-avatar" style="background: linear-gradient(135deg,#1f9d64,#57c98a);"></span>
+            <div><div class="team-name">Priya Shah</div><div class="team-role">Engineering</div></div>
+            <button class="btn">Manage</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="panel-card">
+        <h2>Profile</h2>
+        <div class="field-row">
+          <label for="settingsName">Full name</label>
+          <input type="text" id="settingsName" value="Jordan Rivas" />
+        </div>
+        <div class="field-row">
+          <label for="settingsEmail">Email</label>
+          <input type="email" id="settingsEmail" value="jordan@northlane.app" />
+        </div>
+        <button class="btn primary" id="saveProfileBtn">Save changes</button>
+      </div>
+
+      <div class="panel-card">
+        <h2>Preferences</h2>
+        <div class="toggle-row">
+          <div class="toggle-row-copy"><strong>Email notifications</strong><span>Weekly digest of project activity</span></div>
+          <button class="switch on" data-toggle></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-row-copy"><strong>Two-factor auth</strong><span>Require a code when signing in</span></div>
+          <button class="switch" data-toggle></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-row-copy"><strong>Auto-archive</strong><span>Archive projects after 90 days idle</span></div>
+          <button class="switch on" data-toggle></button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="projectModal">
+  <div class="modal">
+    <h3>New project</h3>
+    <p class="hint">Give it a name — you can add teammates after.</p>
+    <div class="field-row">
+      <label for="projectNameInput">Project name</label>
+      <input type="text" id="projectNameInput" placeholder="e.g. Autumn campaign" />
+    </div>
+    <div class="field-row">
+      <label for="projectOwnerInput">Owner</label>
+      <select id="projectOwnerInput">
+        <option>Mina Kovac</option>
+        <option>Denis Ortiz</option>
+        <option>Priya Shah</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelProjectBtn">Cancel</button>
+      <button class="btn primary" id="createProjectBtn">Create project</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="inviteModal">
+  <div class="modal">
+    <h3>Invite a teammate</h3>
+    <p class="hint">They'll get an email with a link to join Northlane.</p>
+    <div class="field-row">
+      <label for="inviteEmailInput">Email address</label>
+      <input type="email" id="inviteEmailInput" placeholder="name@company.com" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelInviteBtn">Cancel</button>
+      <button class="btn primary" id="sendInviteBtn">Send invite</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const titles = {
+    dashboard: ["Dashboard", "Here's how projects are trending this week."],
+    team: ["Team", "Everyone with access to Northlane."],
+    settings: ["Settings", "Manage your profile and preferences."]
+  };
+
+  document.querySelectorAll(".nav-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const view = btn.dataset.view;
+      document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+      document.getElementById("view-" + view).classList.add("active");
+      document.getElementById("pageTitle").textContent = titles[view][0];
+      document.getElementById("pageSub").textContent = titles[view][1];
+    });
+  });
+
+  function showToast(text) {
+    const toast = document.getElementById("toast");
+    toast.textContent = text;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2200);
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add("open"); }
+  function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+  document.getElementById("newProjectBtn").addEventListener("click", () => openModal("projectModal"));
+  document.getElementById("cancelProjectBtn").addEventListener("click", () => closeModal("projectModal"));
+  document.getElementById("createProjectBtn").addEventListener("click", () => {
+    const name = document.getElementById("projectNameInput").value.trim() || "Untitled project";
+    const owner = document.getElementById("projectOwnerInput").value;
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${name}</td><td>${owner}</td><td><span class="pill active">Active</span></td>`;
+    document.getElementById("projectRows").prepend(row);
+    document.getElementById("statProjects").textContent = Number(document.getElementById("statProjects").textContent) + 1;
+    document.getElementById("projectNameInput").value = "";
+    closeModal("projectModal");
+    showToast("Project created");
+  });
+
+  document.getElementById("inviteBtn").addEventListener("click", () => openModal("inviteModal"));
+  document.getElementById("cancelInviteBtn").addEventListener("click", () => closeModal("inviteModal"));
+  document.getElementById("sendInviteBtn").addEventListener("click", () => {
+    closeModal("inviteModal");
+    document.getElementById("inviteEmailInput").value = "";
+    showToast("Invite sent");
+  });
+
+  document.getElementById("saveProfileBtn").addEventListener("click", () => showToast("Profile saved"));
+
+  document.querySelectorAll("[data-toggle]").forEach((sw) => {
+    sw.addEventListener("click", () => sw.classList.toggle("on"));
+  });
+
+  document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) backdrop.classList.remove("open");
+    });
+  });
+</script>
+</body>
+</html>
