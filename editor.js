@@ -260,7 +260,13 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   let selectedCutId = null;
   let audioTracks = [];
   let selectedAudioId = null;
-  let cursorStyle = CURSOR_STYLES[settings.cursorStyle] ? settings.cursorStyle : "none";
+  // "Share tab instead" captures real screen pixels, so the real cursor is
+  // already permanently baked into this footage - defaulting to a synthetic
+  // style here would double up, and there'd be no way to undo it afterward.
+  const hasRealCursor = Boolean(capture.hasRealCursor);
+  let cursorStyle = hasRealCursor
+    ? "none"
+    : (CURSOR_STYLES[settings.cursorStyle] ? settings.cursorStyle : "arrow");
   let cursorColor = /^#[0-9a-f]{6}$/i.test(settings.cursorColor || "") ? settings.cursorColor : "#e0b44a";
   let clickEffectStyle = CLICK_EFFECTS[settings.clickEffect] ? settings.clickEffect : "none";
   let crop = { x: 0, y: 0, w: 1, h: 1 };
@@ -637,7 +643,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     const clip = selected();
     drawFrame(ctx, video, camera, {
       crop,
-      cursor: cursorStyle !== "none" ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, t) } : null,
+      cursor: cursorStyle !== "none" && samples.length
+        ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, t) }
+        : null,
       clickEffects: clickEffectStyle !== "none" ? activeClickEffects(clicks, t) : null,
       clickStyle: clickEffectStyle,
       clickColor: cursorColor,
@@ -1426,6 +1434,10 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     refreshCursorPicker();
   }
   buildCursorPicker();
+  qs("realCursorWarning").classList.toggle("hidden", !hasRealCursor);
+  if (hasRealCursor) {
+    qs("cursorPanelCopy").textContent = "This take was recorded with Share tab, which captures your real cursor along with the page.";
+  }
 
   const clickEffectTiles = [];
   function refreshClickEffectPicker() {

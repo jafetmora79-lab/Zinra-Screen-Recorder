@@ -32,6 +32,7 @@ let clicks = [];
 let focuses = [];
 let scrolls = [];
 let recOrigin = 0;
+let recOriginWall = 0;
 let startedAt = 0;
 let timerId = 0;
 let stopping = false;
@@ -139,7 +140,7 @@ async function getDisplayStream() {
   }
 }
 
-async function begin(stream, settings) {
+async function begin(stream, settings, hasRealCursor = false) {
   mediaStream = stream;
   settingsCache = settings;
 
@@ -171,7 +172,11 @@ async function begin(stream, settings) {
     width: size.width,
     height: size.height,
     frameRate: fps,
-    mimeType: captureMime
+    mimeType: captureMime,
+    // Tab capture never includes the real OS cursor. Share tab/screen
+    // captures actual pixels, so a real cursor is already baked in - a
+    // synthetic Zinra cursor on top of that would double up.
+    hasRealCursor
   };
   recorder = createRecorder(stream, captureMime, size.width, size.height, fps);
   recorder.ondataavailable = (event) => {
@@ -222,6 +227,7 @@ async function begin(stream, settings) {
   }
 
   recOrigin = performance.now();
+  recOriginWall = Date.now();
   recording = true;
   recorder.start(250);
   startedAt = Date.now();
@@ -328,7 +334,7 @@ shareBtn.addEventListener("click", async () => {
   try {
     const settings = await getSettings();
     const stream = await getDisplayStream();
-    await begin(stream, settings);
+    await begin(stream, settings, true);
   } catch (err) {
     showError(err.message || String(err));
   }
@@ -338,22 +344,29 @@ stopBtn.addEventListener("click", stop);
 
 function ingestPointer(msg) {
   if (!recording || msg?.type !== "pointer") return;
-  const t = (performance.now() - recOrigin) / 1000;
+  const wall = Number(msg.at);
+  let t = Number.isFinite(wall) && recOriginWall
+    ? (wall - recOriginWall) / 1000
+    : (performance.now() - recOrigin) / 1000;
+  if (!Number.isFinite(t)) t = (performance.now() - recOrigin) / 1000;
+  t = Math.max(0, t);
+  const x = Math.min(1, Math.max(0, Number(msg.x) || 0));
+  const y = Math.min(1, Math.max(0, Number(msg.y) || 0));
   const last = samples[samples.length - 1];
   if (!last || t - last.t >= 0.008 || msg.click || msg.kind) {
-    samples.push({ t, x: msg.x, y: msg.y, down: Boolean(msg.down) });
+    samples.push({ t, x, y, down: Boolean(msg.down) });
   } else {
     last.t = t;
-    last.x = msg.x;
-    last.y = msg.y;
+    last.x = x;
+    last.y = y;
     last.down = Boolean(msg.down);
   }
-  if (msg.click && msg.button === 0) clicks.push({ t, x: msg.x, y: msg.y });
+  if (msg.click && msg.button === 0) clicks.push({ t, x, y });
   if (msg.kind === "type") {
     focuses.push({
       t,
-      x: msg.box?.x ?? msg.x,
-      y: msg.box?.y ?? msg.y,
+      x: msg.box?.x ?? x,
+      y: msg.box?.y ?? y,
       w: msg.box?.w ?? 0.22,
       h: msg.box?.h ?? 0.06
     });

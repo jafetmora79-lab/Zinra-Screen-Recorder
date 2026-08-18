@@ -267,14 +267,17 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
+export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a", scale = 1) {
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(scale, scale);
   ctx.lineJoin = "round";
   if (style === "arrow") {
     ctx.scale(down ? 0.92 : 1, down ? 0.92 : 1);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = down ? 10 : 6;
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(0, 15);
@@ -286,9 +289,11 @@ export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
     ctx.closePath();
     ctx.fillStyle = "#f3efe6";
     ctx.strokeStyle = "#1a1916";
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = 1.15;
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     ctx.stroke();
   } else if (style === "dot") {
     const r = down ? 9 : 7;
@@ -323,9 +328,9 @@ export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
     ctx.strokeStyle = "#1a1916";
     ctx.lineWidth = 1.3;
     ctx.lineJoin = "round";
-    // One traced silhouette - extended index finger, two knuckle notches
-    // for the folded fingers, a thumb, and a rounded palm - instead of
-    // four disconnected bars stacked on top of each other.
+    // Hotspot is the index fingertip (path starts at 1,-15), matching a
+    // real OS pointing-hand cursor so clicks land on the tip.
+    ctx.translate(-1, 15);
     ctx.beginPath();
     ctx.moveTo(1, -15);
     ctx.quadraticCurveTo(-1.6, -15, -1.6, -12);
@@ -384,10 +389,11 @@ export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
 }
 
 // progress runs 0 (just clicked) to 1 (effect fully faded) over its window.
-export function drawClickEffect(ctx, style, x, y, progress, color) {
+export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
   const fade = 1 - progress;
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(scale, scale);
   if (style === "ripple") {
     const r = 6 + progress * 34;
     ctx.beginPath();
@@ -456,12 +462,14 @@ export function drawFrame(ctx, video, camera, options = {}) {
   if (video.readyState >= 2) ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, w, h);
   ctx.restore();
 
+  const overlayScale = Math.max(0.9, Math.min(w, h) / 1080);
+
   if (options.focusGuide) {
     const guideLocal = toCropLocal(options.focusGuide.x, options.focusGuide.y, crop);
     const gx = w / 2 + (guideLocal.x * w - focus.x) * camera.zoom;
     const gy = h / 2 + (guideLocal.y * h - focus.y) * camera.zoom;
     ctx.beginPath();
-    ctx.arc(gx, gy, 22, 0, Math.PI * 2);
+    ctx.arc(gx, gy, 22 * overlayScale, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(224, 180, 74, 0.9)";
     ctx.setLineDash([5, 4]);
     ctx.lineWidth = 2;
@@ -474,7 +482,7 @@ export function drawFrame(ctx, video, camera, options = {}) {
       const local = toCropLocal(effect.x, effect.y, crop);
       const ex = w / 2 + (local.x * w - focus.x) * camera.zoom;
       const ey = h / 2 + (local.y * h - focus.y) * camera.zoom;
-      drawClickEffect(ctx, options.clickStyle, ex, ey, effect.progress, options.clickColor || "#e0b44a");
+      drawClickEffect(ctx, options.clickStyle, ex, ey, effect.progress, options.clickColor || "#e0b44a", overlayScale);
     }
   }
 
@@ -482,7 +490,7 @@ export function drawFrame(ctx, video, camera, options = {}) {
     const cursorLocal = toCropLocal(options.cursor.x, options.cursor.y, crop);
     const cx = w / 2 + (cursorLocal.x * w - focus.x) * camera.zoom;
     const cy = h / 2 + (cursorLocal.y * h - focus.y) * camera.zoom;
-    drawCursorGlyph(ctx, options.cursor.style, cx, cy, Boolean(options.cursor.down), options.cursor.color);
+    drawCursorGlyph(ctx, options.cursor.style, cx, cy, Boolean(options.cursor.down), options.cursor.color, overlayScale);
   }
 }
 

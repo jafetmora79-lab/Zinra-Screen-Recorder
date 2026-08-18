@@ -432,7 +432,7 @@ export async function renderOfflineExport({
   const keyEvery = Math.max(1, Math.round(fps * 2));
   const drawOpts = { width, height, fast: true, crop, clickStyle: clickEffectStyle, clickColor: cursorColor };
   const seekSlack = 0.45 / Math.max(24, fps);
-  const showCursor = cursorStyle && cursorStyle !== "none";
+  const showCursor = cursorStyle && cursorStyle !== "none" && samples && samples.length;
   const showClickEffects = clickEffectStyle && clickEffectStyle !== "none" && clicks && clicks.length;
 
   try {

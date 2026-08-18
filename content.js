@@ -3,11 +3,15 @@
   window.__zinraPointer = true;
   if (window !== window.top) return;
 
-  const state = { x: 0.5, y: 0.5, down: false, dirty: false };
+  const state = { x: 0.5, y: 0.5, down: false, dirty: false, at: 0 };
   let armed = false;
   let raf = 0;
   let lastSent = 0;
   let port = null;
+
+  function clamp01(value) {
+    return Math.min(1, Math.max(0, value));
+  }
 
   function connect() {
     try {
@@ -24,8 +28,9 @@
   function pointFromEvent(event) {
     const w = window.innerWidth || 1;
     const h = window.innerHeight || 1;
-    state.x = Math.min(1, Math.max(0, event.clientX / w));
-    state.y = Math.min(1, Math.max(0, event.clientY / h));
+    state.x = clamp01(event.clientX / w);
+    state.y = clamp01(event.clientY / h);
+    state.at = Date.now();
   }
 
   function send(extra = {}) {
@@ -34,6 +39,7 @@
       x: state.x,
       y: state.y,
       down: state.down,
+      at: state.at || Date.now(),
       ...extra
     };
     try {
@@ -119,20 +125,28 @@
     send({ kind: "scroll" });
   }, { passive: true, capture: true });
 
+  function arm() {
+    armed = true;
+    connect();
+  }
+
+  function disarm() {
+    armed = false;
+    state.dirty = false;
+    state.down = false;
+    if (raf) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    }
+    try { port?.disconnect(); } catch { /* ignore */ }
+    port = null;
+  }
+
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "zinra-arm" || msg?.type === "swoop-arm" || msg?.type === "mole-arm") {
-      armed = true;
-      connect();
-    }
-    if (msg?.type === "zinra-disarm" || msg?.type === "swoop-disarm" || msg?.type === "mole-disarm") {
-      armed = false;
-      state.dirty = false;
-      if (raf) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
-      try { port?.disconnect(); } catch { /* ignore */ }
-      port = null;
-    }
+    if (msg?.type === "zinra-arm" || msg?.type === "swoop-arm" || msg?.type === "mole-arm") arm();
+    if (msg?.type === "zinra-disarm" || msg?.type === "swoop-disarm" || msg?.type === "mole-disarm") disarm();
   });
+  window.addEventListener("zinra-disarm", disarm);
+
+  arm();
 })();

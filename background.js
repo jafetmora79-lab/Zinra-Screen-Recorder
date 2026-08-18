@@ -5,6 +5,24 @@ let recorderTabId = null;
 let recorderPort = null;
 const pendingPointer = [];
 
+function forwardPointer(msg) {
+  try {
+    if (recorderPort) recorderPort.postMessage(msg);
+    else if (pendingPointer.length < 240) pendingPointer.push(msg);
+  } catch {
+    // Recorder tab closed.
+  }
+}
+
+async function disarmTab(tabId) {
+  if (!tabId) return;
+  chrome.tabs.sendMessage(tabId, { type: "zinra-disarm" }).catch(() => {});
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    func: () => window.dispatchEvent(new CustomEvent("zinra-disarm"))
+  }).catch(() => {});
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.sync.get(null);
   await chrome.storage.sync.set(migrateSettings(current));
@@ -21,14 +39,7 @@ chrome.runtime.onConnect.addListener((port) => {
     });
   }
   if (port.name === "zinra-pointer") {
-    port.onMessage.addListener((msg) => {
-      try {
-        if (recorderPort) recorderPort.postMessage(msg);
-        else if (pendingPointer.length < 240) pendingPointer.push(msg);
-      } catch {
-        // Recorder tab closed.
-      }
-    });
+    port.onMessage.addListener((msg) => forwardPointer(msg));
   }
 });
 
@@ -44,9 +55,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.tabs.onRemoved.addListener((id) => {
   if (id === recorderTabId) {
-    if (recordingTabId) {
-      chrome.tabs.sendMessage(recordingTabId, { type: "zinra-disarm" }).catch(() => {});
-    }
+    disarmTab(recordingTabId);
     recorderTabId = null;
     recordingTabId = null;
     recorderPort = null;
@@ -95,6 +104,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.action.setBadgeText({ text: "REC" });
     chrome.action.setBadgeBackgroundColor({ color: "#c45c4a" });
     if (recordingTabId) {
+      chrome.scripting.executeScript({
+        target: { tabId: recordingTabId, allFrames: false },
+        files: ["content.js"]
+      }).catch(() => {});
       chrome.tabs.sendMessage(recordingTabId, { type: "zinra-arm" }).catch(() => {});
       chrome.tabs.update(recordingTabId, { active: true }).catch(() => {});
     }
@@ -104,9 +117,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "recording-stopped") {
     chrome.action.setBadgeText({ text: "" });
-    if (recordingTabId) {
-      chrome.tabs.sendMessage(recordingTabId, { type: "zinra-disarm" }).catch(() => {});
-    }
+    disarmTab(recordingTabId);
     recordingTabId = null;
     sendResponse({ ok: true });
     return false;
@@ -149,9 +160,7 @@ async function startRecording(tabId) {
 }
 
 function stopRecording() {
-  if (recordingTabId) {
-    chrome.tabs.sendMessage(recordingTabId, { type: "zinra-disarm" }).catch(() => {});
-  }
+  disarmTab(recordingTabId);
   chrome.runtime.sendMessage({ type: "recorder-stop" }).catch(() => {});
 }
 

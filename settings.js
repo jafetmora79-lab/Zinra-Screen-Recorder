@@ -4,7 +4,7 @@ export const DEFAULTS = {
   autoMarkClicks: true,
   includeAudio: true,
   quality: "1080p",
-  cursorStyle: "none",
+  cursorStyle: "arrow",
   cursorColor: "#e0b44a",
   clickEffect: "none",
   pro: false,
