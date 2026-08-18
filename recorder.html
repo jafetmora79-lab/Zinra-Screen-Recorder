@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zinra</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body class="recorder-body">
+  <section id="recordView" class="capture-hud">
+    <header class="brand-head">
+      <div class="brand">
+        <img class="brand-mark" src="icons/icon48.png" width="28" height="28" alt="" />
+        <div>
+          <h1>Zinra</h1>
+          <p class="eyebrow">Studio</p>
+        </div>
+      </div>
+      <span id="statusDot" class="hud-chip idle">Ready</span>
+    </header>
+
+    <div class="preview-wrap">
+      <div class="viewport-corners" aria-hidden="true"></div>
+      <video id="livePreview" autoplay muted playsinline></video>
+      <p id="previewHint" class="hint">Starting tab capture…</p>
+    </div>
+
+    <p id="timer" class="timer">00:00</p>
+    <p id="error" class="error hidden"></p>
+
+    <div class="actions">
+      <button id="startBtn" class="btn primary hidden" type="button">
+        <img class="ui-icon" src="icons/svg/record.svg" alt="" />
+        <span class="btn-label">Start recording</span>
+      </button>
+      <button id="shareBtn" class="btn ghost hidden" type="button">
+        <img class="ui-icon" src="icons/svg/share.svg" alt="" />
+        <span class="btn-label">Share tab instead</span>
+      </button>
+      <button id="stopBtn" class="btn danger" type="button" disabled>
+        <img class="ui-icon" src="icons/svg/stop.svg" alt="" />
+        <span class="btn-label">Stop &amp; edit</span>
+      </button>
+    </div>
+
+    <p class="fine">Keep this tab open while you use the page. Stopping opens the timeline so you can place zooms, speed ramps, and cuts.</p>
+  </section>
+
+  <section id="editView" class="hidden editor-app">
+    <header class="editor-top">
+      <div class="brand compact">
+        <img class="brand-mark" src="icons/icon48.png" width="22" height="22" alt="" />
+        <div>
+          <h1>Zinra</h1>
+          <p class="eyebrow">Studio</p>
+        </div>
+      </div>
+      <span id="timeLabel" class="time-label">00:00.00 / 00:00.00</span>
+      <div class="editor-top-actions">
+        <span id="exportStatus" class="export-status"></span>
+        <label class="quality-field" title="Export quality">
+          <img class="ui-icon" src="icons/svg/settings.svg" alt="" />
+          <select id="exportQuality" class="quality-select">
+            <option value="auto">Match recording</option>
+            <option value="720p">720p</option>
+            <option value="1080p" selected>1080p</option>
+            <option value="1080p60">1080p · 60fps · Pro</option>
+            <option value="1440p">1440p · Pro</option>
+            <option value="4k">4K · Pro</option>
+          </select>
+        </label>
+        <button id="exportBtn" class="btn primary" type="button">
+          <img class="ui-icon" src="icons/svg/export.svg" alt="" />
+          <span class="btn-label">Export</span>
+        </button>
+      </div>
+    </header>
+
+    <aside class="editor-side">
+      <div class="tool-tabs">
+        <button id="tabZoom" class="tool-tab active" type="button">
+          <img class="ui-icon" src="icons/svg/auto-zoom.svg" alt="" />
+          <span>Zoom</span>
+        </button>
+        <button id="tabSpeed" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/speed.svg" alt="" />
+          <span>Speed</span>
+        </button>
+        <button id="tabCut" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/cut.svg" alt="" />
+          <span>Cut</span>
+        </button>
+        <button id="tabAudio" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/mic.svg" alt="" />
+          <span>Audio</span>
+        </button>
+        <button id="tabCursor" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/cursor.svg" alt="" />
+          <span>Cursor</span>
+        </button>
+        <button id="tabCrop" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/crop.svg" alt="" />
+          <span>Crop</span>
+        </button>
+        <button id="tabTrim" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/fit.svg" alt="" />
+          <span>Trim</span>
+        </button>
+      </div>
+
+      <div id="panelZoom" class="side-panel">
+        <p class="panel-kicker">Follow</p>
+        <label class="check">
+          <input id="alwaysFollow" type="checkbox" checked />
+          <span>Follow the mouse while zoomed</span>
+        </label>
+        <p class="panel-copy">Zoom only happens inside Zoom-track clips. Outside those clips the video stays full-frame.</p>
+        <p class="panel-kicker">Segment</p>
+        <p id="zoomEmpty" class="panel-copy">Auto zooms appear from clicks and typing. Drag a clip to move it; drag the edges to change how long it lasts. Save after you edit a segment.</p>
+        <div id="zoomControls" class="hidden">
+          <label class="check">
+            <input id="zoomEnabled" type="checkbox" checked />
+            <span>Enable this zoom</span>
+          </label>
+          <label class="field">
+            <span>Depth</span>
+            <select id="zoomDepth">
+              <option value="shallow">Shallow · 1.25×</option>
+              <option value="moderate" selected>Standard · 1.50×</option>
+              <option value="deep">Deep · 2.20×</option>
+              <option value="maximum">Maximum · 3.00×</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label id="customZoomWrap" class="field">
+            <span>Zoom amount <em id="clipZoomVal">1.50×</em></span>
+            <input id="clipZoom" type="range" min="1.1" max="6" step="0.05" />
+          </label>
+          <label class="field">
+            <span>Motion</span>
+            <select id="zoomFollow">
+              <option value="follow">Follow cursor</option>
+              <option value="fixed">Fixed in place</option>
+            </select>
+          </label>
+          <p class="panel-copy">If fixed, click the preview to set the focus point.</p>
+          <label class="field">
+            <span>Starts at (s)</span>
+            <input id="clipStart" type="number" min="0" step="0.05" />
+          </label>
+          <label class="field">
+            <span>Duration (s)</span>
+            <input id="clipDuration" type="number" min="0.2" step="0.05" />
+          </label>
+          <p id="zoomSaveHint" class="save-hint"></p>
+          <div class="side-actions">
+            <button id="saveZoomBtn" class="btn save" type="button" disabled>
+              <img class="ui-icon" src="icons/svg/confirm.svg" alt="" />
+              <span class="btn-label">Save zoom</span>
+            </button>
+            <button id="applyAllBtn" class="btn ghost" type="button">Apply depth to all</button>
+            <button id="rebuildZoomBtn" class="btn ghost" type="button">Rebuild auto zooms</button>
+            <button id="splitBtn" class="btn ghost" type="button">Split at playhead</button>
+            <button id="addZoomBtn" class="btn ghost" type="button">
+              <img class="ui-icon" src="icons/svg/auto-zoom.svg" alt="" />
+              <span class="btn-label">Add zoom here</span>
+            </button>
+            <button id="deleteZoomBtn" class="btn danger" type="button">
+              <img class="ui-icon" src="icons/svg/delete.svg" alt="" />
+              <span class="btn-label">Delete zoom</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panelSpeed" class="side-panel hidden">
+        <p class="panel-kicker">Segment</p>
+        <p id="speedEmpty" class="panel-copy">Drag on empty space in the Speed track to mark a section that plays faster or slower. Save after you edit a segment.</p>
+        <div id="speedControls" class="hidden">
+          <label class="check">
+            <input id="speedEnabled" type="checkbox" checked />
+            <span>Enable this speed segment</span>
+          </label>
+          <label class="field">
+            <span>Speed</span>
+            <select id="speedMultiplier">
+              <option value="0.25">0.25× (slow-mo)</option>
+              <option value="0.5">0.5×</option>
+              <option value="0.75">0.75×</option>
+              <option value="1" selected>1× (normal)</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option>
+              <option value="3">3×</option>
+              <option value="4">4×</option>
+              <option value="6">6×</option>
+              <option value="8">8× (fast-forward)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Starts at (s)</span>
+            <input id="speedStart" type="number" min="0" step="0.05" />
+          </label>
+          <label class="field">
+            <span>Duration (s)</span>
+            <input id="speedDuration" type="number" min="0.1" step="0.05" />
+          </label>
+          <p id="speedSaveHint" class="save-hint"></p>
+          <div class="side-actions">
+            <button id="saveSpeedBtn" class="btn save" type="button" disabled>
+              <img class="ui-icon" src="icons/svg/confirm.svg" alt="" />
+              <span class="btn-label">Save speed</span>
+            </button>
+            <button id="addSpeedBtn" class="btn ghost" type="button">Add speed segment here</button>
+            <button id="deleteSpeedBtn" class="btn danger" type="button">
+              <img class="ui-icon" src="icons/svg/delete.svg" alt="" />
+              <span class="btn-label">Delete segment</span>
+            </button>
+          </div>
+        </div>
+        <p class="panel-copy">Speed segments compress or stretch that section in the exported video. Zooms keep tracking the same recorded cursor positions, just faster or slower.</p>
+      </div>
+
+      <div id="panelCut" class="side-panel hidden">
+        <p class="panel-kicker">Segment</p>
+        <p id="cutEmpty" class="panel-copy">Drag on empty space in the Cut track to mark a section to remove entirely. Save after you edit a segment.</p>
+        <div id="cutControls" class="hidden">
+          <label class="check">
+            <input id="cutEnabled" type="checkbox" checked />
+            <span>Enable this cut</span>
+          </label>
+          <label class="field">
+            <span>Starts at (s)</span>
+            <input id="cutStart" type="number" min="0" step="0.05" />
+          </label>
+          <label class="field">
+            <span>Duration (s)</span>
+            <input id="cutDuration" type="number" min="0.1" step="0.05" />
+          </label>
+          <p id="cutSaveHint" class="save-hint"></p>
+          <div class="side-actions">
+            <button id="saveCutBtn" class="btn save" type="button" disabled>
+              <img class="ui-icon" src="icons/svg/confirm.svg" alt="" />
+              <span class="btn-label">Save cut</span>
+            </button>
+            <button id="addCutBtn" class="btn ghost" type="button">Add cut here</button>
+            <button id="deleteCutBtn" class="btn danger" type="button">
+              <img class="ui-icon" src="icons/svg/delete.svg" alt="" />
+              <span class="btn-label">Delete cut</span>
+            </button>
+          </div>
+        </div>
+        <p id="cutSummary" class="panel-copy"></p>
+      </div>
+
+      <div id="panelAudio" class="side-panel hidden">
+        <p class="panel-kicker">Track</p>
+        <p id="audioEmpty" class="panel-copy">Add a voiceover or music file. It plays at the position you place it and follows this recording's cuts and speed changes, just like the picture.</p>
+        <input id="audioFileInput" type="file" accept="audio/*" class="hidden" />
+        <button id="addAudioBtn" class="btn ghost" type="button">
+          <img class="ui-icon" src="icons/svg/import.svg" alt="" />
+          <span class="btn-label">Add audio file</span>
+        </button>
+        <div id="audioControls" class="hidden">
+          <label class="check">
+            <input id="audioEnabled" type="checkbox" checked />
+            <span>Enable this track</span>
+          </label>
+          <p id="audioFileName" class="panel-copy"></p>
+          <label class="check">
+            <input id="audioMuted" type="checkbox" />
+            <span class="check-copy">
+              <img class="ui-icon" src="icons/svg/mute.svg" alt="" />
+              Mute
+            </span>
+          </label>
+          <label class="field">
+            <span>Volume <em id="audioVolumeVal">100%</em></span>
+            <input id="audioVolume" type="range" min="0" max="1.5" step="0.05" value="1" />
+          </label>
+          <label class="field">
+            <span>Starts at (s)</span>
+            <input id="audioStart" type="number" min="0" step="0.05" />
+          </label>
+          <label class="field">
+            <span>Duration (s)</span>
+            <input id="audioDuration" type="number" min="0.2" step="0.05" />
+          </label>
+          <p id="audioSaveHint" class="save-hint"></p>
+          <div class="side-actions">
+            <button id="saveAudioBtn" class="btn save" type="button" disabled>
+              <img class="ui-icon" src="icons/svg/confirm.svg" alt="" />
+              <span class="btn-label">Save audio</span>
+            </button>
+            <button id="addAudioBtn2" class="btn ghost" type="button">
+              <img class="ui-icon" src="icons/svg/import.svg" alt="" />
+              <span class="btn-label">Add another file</span>
+            </button>
+            <button id="deleteAudioBtn" class="btn danger" type="button">
+              <img class="ui-icon" src="icons/svg/delete.svg" alt="" />
+              <span class="btn-label">Remove track</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panelCursor" class="side-panel hidden">
+        <p class="panel-kicker">Cursor</p>
+        <p class="panel-copy">Tab recordings don't capture the real OS pointer. Draw a synthetic one, or leave it hidden.</p>
+        <label class="field">
+          <span>Style</span>
+          <select id="cursorStyle">
+            <option value="none">Hidden</option>
+            <option value="arrow">Arrow</option>
+            <option value="dot">Dot</option>
+            <option value="hand">Hand · Pro</option>
+            <option value="ring">Ring · Pro</option>
+          </select>
+        </label>
+        <p id="cursorProNote" class="cursor-pro-note hidden">That style is Pro. Pick Arrow or Dot, or unlock Pro.</p>
+        <p class="panel-kicker">Camera</p>
+        <label class="check">
+          <input id="smoothMove" type="checkbox" checked />
+          <span>Smooth movement</span>
+        </label>
+        <label class="field">
+          <span>Follow lag <em id="followLagVal">Snappy</em></span>
+          <input id="followLag" type="range" min="0.16" max="0.65" step="0.01" value="0.24" />
+        </label>
+        <p class="panel-copy">Controls how the camera eases when panning and zooming between segments.</p>
+      </div>
+
+      <div id="panelCrop" class="side-panel hidden">
+        <p class="panel-kicker">Frame</p>
+        <label class="field">
+          <span>Aspect ratio</span>
+          <select id="cropAspect">
+            <option value="original">Original</option>
+            <option value="16:9">16:9 · Widescreen</option>
+            <option value="9:16">9:16 · Phone</option>
+            <option value="1:1">1:1 · Square</option>
+            <option value="4:5">4:5 · Portrait</option>
+          </select>
+        </label>
+        <p class="panel-copy">Crops straight from the recording's full resolution, so nothing gets softer. Drag the preview to reposition the frame.</p>
+      </div>
+
+      <div id="panelTrim" class="side-panel hidden">
+        <p class="panel-kicker">Clip</p>
+        <label class="field">
+          <span>Trim start (s)</span>
+          <input id="trimStart" type="number" min="0" step="0.05" value="0" />
+        </label>
+        <label class="field">
+          <span>Trim end (s)</span>
+          <input id="trimEnd" type="number" min="0" step="0.05" />
+        </label>
+        <p id="trimSaveHint" class="save-hint"></p>
+        <div class="side-actions">
+          <button id="saveTrimBtn" class="btn save" type="button" disabled>
+            <img class="ui-icon" src="icons/svg/confirm.svg" alt="" />
+            <span class="btn-label">Save trim</span>
+          </button>
+        </div>
+        <p class="panel-copy">Drag the handles on the video track, or type times here and save.</p>
+      </div>
+    </aside>
+
+    <main class="editor-stage">
+      <div id="stageFrame" class="stage-frame">
+        <div class="viewport">
+          <div class="viewport-corners" aria-hidden="true"></div>
+          <video id="sourceVideo" class="source-video" playsinline preload="auto"></video>
+          <canvas id="editCanvas"></canvas>
+          <p id="loadStatus" class="hint">Loading recording…</p>
+          <div class="viewport-actions">
+            <button id="fullscreenBtn" class="viewport-fullscreen-btn" type="button" title="Fullscreen">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M7 3H3v4M13 3h4v4M7 17H3v-4M13 17h4v-4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="editor-timeline">
+      <div class="transport">
+        <button id="backBtn" class="btn icon" type="button" title="Back 1s">
+          <img class="ui-icon" src="icons/svg/previous.svg" alt="" />
+        </button>
+        <button id="playBtn" class="btn play-btn" type="button">
+          <img class="ui-icon" src="icons/svg/play.svg" alt="" />
+          <span class="btn-label">Play</span>
+        </button>
+        <button id="fwdBtn" class="btn icon" type="button" title="Forward 1s">
+          <img class="ui-icon" src="icons/svg/next.svg" alt="" />
+        </button>
+        <span class="kbd-hint">Space play · Del removes selected · ⌘S save</span>
+        <span class="transport-spacer"></span>
+        <button id="timelineZoomOut" class="btn icon" type="button" title="Zoom out timeline">
+          <img class="ui-icon" src="icons/svg/zoom-out.svg" alt="" />
+        </button>
+        <button id="timelineFit" class="btn ghost" type="button" title="Fit timeline">
+          <img class="ui-icon" src="icons/svg/fit.svg" alt="" />
+          <span class="btn-label">Fit</span>
+        </button>
+        <button id="timelineZoomIn" class="btn icon" type="button" title="Zoom in timeline">
+          <img class="ui-icon" src="icons/svg/zoom-in.svg" alt="" />
+        </button>
+      </div>
+      <div id="timelineScroll" class="timeline-scroll">
+        <div class="timeline-labels">
+          <div class="ruler-spacer"></div>
+          <div class="track-label"><i class="swatch video"></i>Video</div>
+          <div class="track-label"><i class="swatch zoom"></i>Zoom</div>
+          <div class="track-label"><i class="swatch speed"></i>Speed</div>
+          <div class="track-label"><i class="swatch cut"></i>Cut</div>
+          <div class="track-label"><i class="swatch audio"></i>Audio</div>
+        </div>
+        <div id="timelineInner" class="timeline-inner">
+          <div id="ruler" class="ruler"></div>
+          <div id="videoTrack" class="lane">
+            <div id="videoClip" class="video-clip">
+              <span class="trim-handle left" data-trim="start"></span>
+              <span class="trim-handle right" data-trim="end"></span>
+            </div>
+          </div>
+          <div id="zoomTrack" class="lane zoom-lane"></div>
+          <div id="speedTrack" class="lane speed-lane"></div>
+          <div id="cutTrack" class="lane cut-lane"></div>
+          <div id="audioTrack" class="lane audio-lane"></div>
+          <div id="playhead" class="playhead"></div>
+        </div>
+      </div>
+    </footer>
+
+    <div id="exportOverlay" class="export-overlay hidden">
+      <div class="export-modal">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="exportOverlayStatus" class="export-overlay-status">Exporting…</p>
+        <div class="export-progress">
+          <div id="exportProgressBar" class="export-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="recorder.js"></script>
+</body>
+</html>

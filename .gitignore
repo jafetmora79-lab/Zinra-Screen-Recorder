@@ -1,0 +1,9 @@
+# Build output (regenerate with installer/build-store-package.bat)
+dist/
+
+# Local tool state
+.claude/
+
+# OS cruft
+Thumbs.db
+.DS_Store

@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Zinra",
+  "version": "1.9.0",
+  "minimum_chrome_version": "116",
+  "description": "Record a Chrome tab, punch in on clicks, then export a cinematic MP4.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Zinra",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "tabCapture",
+    "tabs",
+    "activeTab",
+    "storage",
+    "downloads",
+    "scripting"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "commands": {
+    "toggle-record": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Start or stop recording"
+    }
+  }
+}

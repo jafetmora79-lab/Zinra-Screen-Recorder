@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zinra</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body class="popup-body">
+  <header class="brand-head">
+    <div class="brand">
+      <img class="brand-mark" src="icons/icon48.png" width="28" height="28" alt="" />
+      <div>
+        <h1>Zinra</h1>
+        <p class="eyebrow">Studio</p>
+      </div>
+    </div>
+    <span id="statusDot" class="hud-chip idle">Ready</span>
+  </header>
+
+  <section class="card">
+    <label class="check">
+      <input id="autoMarkClicks" type="checkbox" />
+      <span class="check-copy">
+        <img class="ui-icon" src="icons/svg/auto-zoom.svg" alt="" />
+        Mark a zoom on each click
+      </span>
+    </label>
+
+    <label class="field">
+      <span>Zoom depth <em id="clickZoomVal">1.50×</em></span>
+      <input id="clickZoom" type="range" min="1.2" max="2.6" step="0.05" />
+    </label>
+
+    <label class="field">
+      <span>Zoom length <em id="zoomDurationVal">2.2s</em></span>
+      <input id="zoomDuration" type="range" min="0.8" max="4" step="0.1" />
+    </label>
+
+    <label class="check">
+      <input id="includeAudio" type="checkbox" />
+      <span class="check-copy">
+        <img class="ui-icon" src="icons/svg/mic.svg" alt="" />
+        Include tab audio
+      </span>
+    </label>
+
+    <label class="field">
+      <span>
+        <span class="check-copy">
+          <img class="ui-icon" src="icons/svg/settings.svg" alt="" />
+          Export quality
+        </span>
+      </span>
+      <select id="quality">
+        <option value="auto">Match recording</option>
+        <option value="720p">720p</option>
+        <option value="1080p" selected>1080p</option>
+        <option value="1080p60">1080p · 60fps · Pro</option>
+        <option value="1440p">1440p · Pro</option>
+        <option value="4k">4K · Pro</option>
+      </select>
+    </label>
+  </section>
+
+  <p id="error" class="error hidden"></p>
+
+  <div class="actions">
+    <button id="recordBtn" class="btn primary record-cta" type="button">
+      <img class="ui-icon" src="icons/svg/record.svg" alt="" />
+      <span class="btn-label">Record this page</span>
+    </button>
+  </div>
+
+  <p class="fine">Alt+Shift+R starts or stops. Recording stays at the tab’s native size; quality only changes the exported file. Standard zoom is 1.50×.</p>
+  <p class="fine pro-note">Free includes 1080p. 4K and 60fps are marked Pro for when billing ships — they stay unlocked for now.</p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

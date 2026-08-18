@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zinra privacy</title>
+  <link rel="stylesheet" href="ui.css" />
+  <style>
+    .legal { max-width: 640px; margin: 0 auto; padding: 32px 20px 64px; }
+    .legal h1 { font-size: 28px; margin-bottom: 8px; }
+    .legal h2 { font-size: 16px; margin: 28px 0 8px; }
+    .legal p, .legal li { color: var(--muted); }
+    .legal ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <article class="legal">
+    <p class="eyebrow">Zinra</p>
+    <h1>Privacy</h1>
+    <p>Last updated: 16 August 2026</p>
+    <p>Zinra records the Chrome tab you choose, then edits and exports that recording on your computer. It is built to work offline after capture.</p>
+
+    <h2>What Zinra accesses</h2>
+    <ul>
+      <li><strong>Tab capture</strong> — only the tab you start recording, plus optional tab audio.</li>
+      <li><strong>Pointer position</strong> — sampled on that tab while a recording is armed, so zooms can follow clicks. Sampling stops when you stop.</li>
+      <li><strong>Downloads</strong> — to save the exported MP4 where you pick.</li>
+      <li><strong>Sync storage</strong> — your preferences (zoom depth, quality, audio). No recordings are uploaded.</li>
+    </ul>
+
+    <h2>What Zinra does not do</h2>
+    <ul>
+      <li>No account. No analytics SDK. No advertising ID.</li>
+      <li>Recordings are not sent to Zinra servers. Export runs in the extension window with WebCodecs.</li>
+      <li>Zinra does not read other tabs in the background. Capture and pointer sampling run only while you record.</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <p><code>tabCapture</code>, <code>tabs</code>, <code>activeTab</code>, <code>scripting</code>, <code>storage</code>, and <code>downloads</code> exist so Zinra can record a tab, place zooms, remember settings, and save a file. Host access is used only to inject the recorder helper on the tab you film.</p>
+
+    <h2>Contact</h2>
+    <p>For privacy questions, use the Chrome Web Store support email listed on the Zinra listing.</p>
+  </article>
+</body>
+</html>
