@@ -6,6 +6,7 @@ export const DEFAULTS = {
   quality: "1080p",
   cursorStyle: "none",
   cursorColor: "#e0b44a",
+  clickEffect: "none",
   pro: false,
   licenseKey: null,
   exportCount: 0
@@ -39,6 +40,15 @@ export const CURSOR_STYLES = {
   crosshair: { id: "crosshair", label: "Crosshair", pro: true }
 };
 
+// A short animation that plays at each recorded click position, independent
+// of the cursor style (works even with the cursor Hidden).
+export const CLICK_EFFECTS = {
+  none: { id: "none", label: "None", pro: false },
+  ripple: { id: "ripple", label: "Ripple", pro: false },
+  wave: { id: "wave", label: "Wave", pro: true },
+  spark: { id: "spark", label: "Spark", pro: true }
+};
+
 function isHexColor(value) {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
 }
@@ -52,6 +62,7 @@ export function migrateSettings(stored = {}) {
   if (!QUALITY_PRESETS[next.quality]) next.quality = DEFAULTS.quality;
   if (!CURSOR_STYLES[next.cursorStyle]) next.cursorStyle = DEFAULTS.cursorStyle;
   if (!isHexColor(next.cursorColor)) next.cursorColor = DEFAULTS.cursorColor;
+  if (!CLICK_EFFECTS[next.clickEffect]) next.clickEffect = DEFAULTS.clickEffect;
   next.pro = Boolean(next.pro);
   const count = Number(next.exportCount);
   next.exportCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;

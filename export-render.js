@@ -1,5 +1,5 @@
 import { Muxer, ArrayBufferTarget } from "./mp4-muxer.mjs";
-import { cameraAt, drawFrame, resetCameraCache, samplePointer } from "./compositor.js";
+import { cameraAt, drawFrame, resetCameraCache, samplePointer, activeClickEffects } from "./compositor.js";
 import { exportVideoBitrate } from "./encode.js";
 
 function even(n) {
@@ -366,6 +366,8 @@ export async function renderOfflineExport({
   crop,
   cursorStyle,
   cursorColor,
+  clicks,
+  clickEffectStyle,
   onProgress
 }) {
   const width = even(outW || video.videoWidth);
@@ -428,9 +430,10 @@ export async function renderOfflineExport({
 
   let lastSource = -1;
   const keyEvery = Math.max(1, Math.round(fps * 2));
-  const drawOpts = { width, height, fast: true, crop };
+  const drawOpts = { width, height, fast: true, crop, clickStyle: clickEffectStyle, clickColor: cursorColor };
   const seekSlack = 0.45 / Math.max(24, fps);
   const showCursor = cursorStyle && cursorStyle !== "none";
+  const showClickEffects = clickEffectStyle && clickEffectStyle !== "none" && clicks && clicks.length;
 
   try {
     for (let i = 0; i < frames.length; i++) {
@@ -445,6 +448,7 @@ export async function renderOfflineExport({
       drawOpts.cursor = showCursor
         ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, sourceTime) }
         : null;
+      drawOpts.clickEffects = showClickEffects ? activeClickEffects(clicks, sourceTime) : null;
       drawFrame(ctx, video, camera, drawOpts);
       const timestamp = Math.round(outputTime * 1e6);
       const durationUs = Math.round(1e6 / fps);

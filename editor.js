@@ -2,6 +2,8 @@ import {
   cameraAt,
   drawFrame,
   drawCursorGlyph,
+  drawClickEffect,
+  activeClickEffects,
   samplePointer,
   sourceFromCanvasPoint,
   resetCameraCache
@@ -9,7 +11,7 @@ import {
 import { autoZoomClips } from "./camera-path.js";
 import { resolveExportSize } from "./encode.js";
 import { renderOfflineExport } from "./export-render.js";
-import { isProLocked, CURSOR_STYLES, canExport, remainingFreeExports } from "./settings.js";
+import { isProLocked, CURSOR_STYLES, CLICK_EFFECTS, canExport, remainingFreeExports } from "./settings.js";
 
 const DEPTH_PRESETS = {
   shallow: 1.25,
@@ -260,6 +262,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   let selectedAudioId = null;
   let cursorStyle = CURSOR_STYLES[settings.cursorStyle] ? settings.cursorStyle : "none";
   let cursorColor = /^#[0-9a-f]{6}$/i.test(settings.cursorColor || "") ? settings.cursorColor : "#e0b44a";
+  let clickEffectStyle = CLICK_EFFECTS[settings.clickEffect] ? settings.clickEffect : "none";
   let crop = { x: 0, y: 0, w: 1, h: 1 };
   let cropDrag = null;
   let duration = 0;
@@ -635,6 +638,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     drawFrame(ctx, video, camera, {
       crop,
       cursor: cursorStyle !== "none" ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, t) } : null,
+      clickEffects: clickEffectStyle !== "none" ? activeClickEffects(clicks, t) : null,
+      clickStyle: clickEffectStyle,
+      clickColor: cursorColor,
       focusGuide: !exporting && clip && clip.followCursor === false ? { x: clip.x, y: clip.y } : null
     });
     syncAudioPreview(t);
@@ -1420,11 +1426,68 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     refreshCursorPicker();
   }
   buildCursorPicker();
+
+  const clickEffectTiles = [];
+  function refreshClickEffectPicker() {
+    for (const tile of clickEffectTiles) {
+      tile.el.classList.toggle("selected", tile.id === clickEffectStyle);
+      tile.ctx.clearRect(0, 0, 40, 40);
+      if (tile.id === "none") {
+        tile.ctx.strokeStyle = "#9a9386";
+        tile.ctx.lineWidth = 1.6;
+        tile.ctx.beginPath();
+        tile.ctx.arc(20, 20, 10, 0, Math.PI * 2);
+        tile.ctx.moveTo(13, 13);
+        tile.ctx.lineTo(27, 27);
+        tile.ctx.stroke();
+      } else {
+        // A mid-animation frame reads as the clearest preview of each effect.
+        drawClickEffect(tile.ctx, tile.id, 20, 20, 0.35, cursorColor);
+      }
+    }
+    qs("clickEffectProNote").classList.toggle("hidden", !isProLocked(clickEffectStyle, settings, CLICK_EFFECTS));
+  }
+  function buildClickEffectPicker() {
+    const wrap = qs("clickEffectPicker");
+    wrap.innerHTML = "";
+    clickEffectTiles.length = 0;
+    for (const [id, preset] of Object.entries(CLICK_EFFECTS)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cursor-tile";
+      btn.title = preset.label;
+      const previewCanvas = document.createElement("canvas");
+      previewCanvas.width = 40;
+      previewCanvas.height = 40;
+      const label = document.createElement("span");
+      label.className = "cursor-tile-label";
+      label.textContent = preset.label;
+      btn.append(previewCanvas, label);
+      if (preset.pro) {
+        const badge = document.createElement("span");
+        badge.className = "cursor-tile-pro";
+        badge.textContent = "PRO";
+        btn.appendChild(badge);
+      }
+      btn.addEventListener("click", () => {
+        clickEffectStyle = id;
+        chrome.storage.sync.set({ clickEffect: id }).catch(() => {});
+        refreshClickEffectPicker();
+        render();
+      });
+      wrap.appendChild(btn);
+      clickEffectTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d") });
+    }
+    refreshClickEffectPicker();
+  }
+  buildClickEffectPicker();
+
   qs("cursorColor").value = cursorColor;
   qs("cursorColor").addEventListener("input", () => {
     cursorColor = qs("cursorColor").value;
     chrome.storage.sync.set({ cursorColor }).catch(() => {});
     refreshCursorPicker();
+    refreshClickEffectPicker();
     render();
   });
 
@@ -1580,6 +1643,10 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       setExportStatus("That cursor style is Pro. Pick Arrow, Dot, or Hidden, or unlock Pro.");
       return;
     }
+    if (isProLocked(clickEffectStyle, settings, CLICK_EFFECTS)) {
+      setExportStatus("That click effect is Pro. Pick None or Ripple, or unlock Pro.");
+      return;
+    }
     if (!canExport(settings)) {
       showPaywall();
       return;
@@ -1630,6 +1697,8 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         crop,
         cursorStyle,
         cursorColor,
+        clicks,
+        clickEffectStyle,
         onProgress(pct, outputTime) {
           setExportStatus(`Exporting ${Math.round(pct * 100)}% · ${formatClock(outputTime)}`, pct);
         }

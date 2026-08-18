@@ -52,6 +52,22 @@ export function smoothPointer(samples, t, tau = 0.12) {
   return { x: x / wsum, y: y / wsum, down };
 }
 
+// Every recorded click whose short effect animation window (0 to `duration`
+// seconds after the click) covers time t, with 0-1 progress through it.
+// A pure function of (clicks, t) like the rest of this module, so it works
+// identically whether called during live scrubbing or offline export.
+export function activeClickEffects(clicks, t, duration = 0.6) {
+  if (!clicks || !clicks.length) return [];
+  const active = [];
+  for (const click of clicks) {
+    const dt = t - click.t;
+    if (dt >= 0 && dt <= duration) {
+      active.push({ x: click.x, y: click.y, progress: dt / duration });
+    }
+  }
+  return active;
+}
+
 function followsCursor(clip) {
   return Boolean(clip) && clip.followCursor !== false;
 }
@@ -114,6 +130,11 @@ export function resetCameraCache() {
   cache = null;
 }
 
+// Normalized (0-1) radius: cursor drift smaller than this doesn't retarget
+// the camera. Small enough to still catch a deliberate move to a nearby
+// element, large enough to absorb hand tremor in the recorded trail.
+const DEAD_ZONE = 0.028;
+
 function stepSpring(state, target, omega, zoomOmega, dt) {
   const ax = omega * omega * (target.x - state.x) - 2 * omega * state.vx;
   const ay = omega * omega * (target.y - state.y) - 2 * omega * state.vy;
@@ -159,6 +180,8 @@ function springCamera(t, clips, samples, opts) {
       vx: 0,
       vy: 0,
       vz: 0,
+      targetX: first.x,
+      targetY: first.y,
       alwaysFollow: opts.alwaysFollow,
       cursorTau: opts.cursorTau,
       settle,
@@ -168,8 +191,14 @@ function springCamera(t, clips, samples, opts) {
 
   for (let time = state.t; time < t; time += dt) {
     const next = Math.min(t, time + dt);
-    const target = cameraTarget(next, clips, samples, opts.alwaysFollow, opts.cursorTau, preferredId);
-    stepSpring(state, target, omega, zoomOmega, dt);
+    const raw = cameraTarget(next, clips, samples, opts.alwaysFollow, opts.cursorTau, preferredId);
+    // Dead zone: only retarget the spring when the cursor has actually moved
+    // somewhere new, not on every micro-jitter in the recorded pointer trail.
+    if (Math.hypot(raw.x - state.targetX, raw.y - state.targetY) > DEAD_ZONE) {
+      state.targetX = raw.x;
+      state.targetY = raw.y;
+    }
+    stepSpring(state, { x: state.targetX, y: state.targetY, zoom: raw.zoom }, omega, zoomOmega, dt);
   }
   state.t = t;
   state.followKey = followKey;
@@ -196,13 +225,16 @@ export function cameraAt(t, clips, samples, motion = {}) {
   };
 }
 
+// Centers on the camera's true target and only pulls back exactly as far as
+// needed to keep the zoomed viewport inside the frame - not an approximation
+// that pans less than it could, and not one that can show past the edge.
 function focusPoint(camera, w, h) {
   const zoom = Math.max(1, camera.zoom || 1);
-  const pan = zoom <= 1.001 ? 0 : Math.min(0.92, (zoom - 1) / Math.max(0.25, zoom - 0.85));
+  const halfW = w / (2 * zoom);
+  const halfH = h / (2 * zoom);
   return {
-    x: (0.5 + (camera.x - 0.5) * pan) * w,
-    y: (0.5 + (camera.y - 0.5) * pan) * h,
-    pan
+    x: clamp(camera.x * w, halfW, w - halfW),
+    y: clamp(camera.y * h, halfH, h - halfH)
   };
 }
 
@@ -351,6 +383,47 @@ export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
   ctx.restore();
 }
 
+// progress runs 0 (just clicked) to 1 (effect fully faded) over its window.
+export function drawClickEffect(ctx, style, x, y, progress, color) {
+  const fade = 1 - progress;
+  ctx.save();
+  ctx.translate(x, y);
+  if (style === "ripple") {
+    const r = 6 + progress * 34;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.strokeStyle = colorWithAlpha(color, fade * 0.9);
+    ctx.lineWidth = 1 + fade * 3;
+    ctx.stroke();
+  } else if (style === "wave") {
+    for (let i = 0; i < 3; i++) {
+      const raw = progress - i * 0.16;
+      if (raw <= 0) continue;
+      const ringProgress = clamp(raw, 0, 1);
+      const r = 5 + ringProgress * 32;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.strokeStyle = colorWithAlpha(color, (1 - ringProgress) * 0.7);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  } else if (style === "spark") {
+    const count = 8;
+    const len = 6 + progress * 18;
+    const inner = 4 + progress * 6;
+    ctx.strokeStyle = colorWithAlpha(color, fade);
+    ctx.lineWidth = 2;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      ctx.lineTo(Math.cos(angle) * (inner + len), Math.sin(angle) * (inner + len));
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 export function drawFrame(ctx, video, camera, options = {}) {
   const srcW = video.videoWidth || 1280;
   const srcH = video.videoHeight || 720;
@@ -394,6 +467,15 @@ export function drawFrame(ctx, video, camera, options = {}) {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  if (options.clickEffects && options.clickEffects.length && options.clickStyle && options.clickStyle !== "none") {
+    for (const effect of options.clickEffects) {
+      const local = toCropLocal(effect.x, effect.y, crop);
+      const ex = w / 2 + (local.x * w - focus.x) * camera.zoom;
+      const ey = h / 2 + (local.y * h - focus.y) * camera.zoom;
+      drawClickEffect(ctx, options.clickStyle, ex, ey, effect.progress, options.clickColor || "#e0b44a");
+    }
   }
 
   if (options.cursor && options.cursor.style && options.cursor.style !== "none") {
