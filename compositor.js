@@ -226,12 +226,23 @@ function toCropLocal(x, y, crop) {
   };
 }
 
-function drawCursorGlyph(ctx, style, x, y, down) {
+function colorWithAlpha(hex, alpha) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+  if (!m) return `rgba(224, 180, 74, ${alpha})`;
+  const r = parseInt(m[1], 16);
+  const g = parseInt(m[2], 16);
+  const b = parseInt(m[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a") {
   ctx.save();
   ctx.translate(x, y);
   ctx.lineJoin = "round";
   if (style === "arrow") {
     ctx.scale(down ? 0.92 : 1, down ? 0.92 : 1);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = down ? 10 : 6;
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(0, 15);
@@ -245,49 +256,97 @@ function drawCursorGlyph(ctx, style, x, y, down) {
     ctx.strokeStyle = "#1a1916";
     ctx.lineWidth = 1.6;
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.stroke();
   } else if (style === "dot") {
     const r = down ? 9 : 7;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(224, 180, 74, 0.92)";
-    ctx.shadowColor = "rgba(224, 180, 74, 0.75)";
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
     ctx.shadowBlur = down ? 16 : 10;
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.lineWidth = 1.4;
     ctx.strokeStyle = "#1a1916";
     ctx.stroke();
+  } else if (style === "spotlight") {
+    const r = down ? 46 : 36;
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, colorWithAlpha(color, 0.55));
+    grad.addColorStop(1, colorWithAlpha(color, 0));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
   } else if (style === "hand") {
     ctx.scale(down ? 0.92 : 1, down ? 0.92 : 1);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = down ? 10 : 6;
     ctx.fillStyle = "#f3efe6";
     ctx.strokeStyle = "#1a1916";
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.3;
+    ctx.lineJoin = "round";
+    // One traced silhouette - extended index finger, two knuckle notches
+    // for the folded fingers, a thumb, and a rounded palm - instead of
+    // four disconnected bars stacked on top of each other.
     ctx.beginPath();
-    ctx.roundRect(-5, 2, 11, 12, 4);
+    ctx.moveTo(1, -15);
+    ctx.quadraticCurveTo(-1.6, -15, -1.6, -12);
+    ctx.lineTo(-1.6, -2.6);
+    ctx.quadraticCurveTo(-3.4, -3.4, -4.6, -1.8);
+    ctx.quadraticCurveTo(-5.6, -0.6, -4.6, 1.4);
+    ctx.lineTo(-2.4, 5);
+    ctx.quadraticCurveTo(-6.4, 3.6, -8, 5.2);
+    ctx.quadraticCurveTo(-9.4, 6.6, -8, 8.4);
+    ctx.lineTo(-3.6, 12.4);
+    ctx.quadraticCurveTo(-1.6, 14.4, 2.4, 14.4);
+    ctx.lineTo(5.6, 14.4);
+    ctx.quadraticCurveTo(9.4, 14.4, 9.4, 10.2);
+    ctx.lineTo(9.4, -1.4);
+    ctx.quadraticCurveTo(9.4, -4, 6.6, -4);
+    ctx.quadraticCurveTo(4.6, -4, 4.6, -1.8);
+    ctx.lineTo(4.6, -12);
+    ctx.quadraticCurveTo(4.6, -15, 1, -15);
+    ctx.closePath();
     ctx.fill();
-    ctx.stroke();
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.roundRect(-4.5 + i * 3.6, -9, 3, 12, 1.5);
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.roundRect(-9, 4, 4.5, 8, 2);
-    ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.stroke();
   } else if (style === "ring") {
     const r = down ? 13 : 10;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.strokeStyle = "#e0b44a";
+    ctx.strokeStyle = color;
     ctx.lineWidth = down ? 3.2 : 2.2;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, 0, 2.4, 0, Math.PI * 2);
-    ctx.fillStyle = "#e0b44a";
+    ctx.fillStyle = color;
     ctx.fill();
+  } else if (style === "crosshair") {
+    const len = down ? 16 : 12;
+    const gap = 4;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-len, 0);
+    ctx.lineTo(-gap, 0);
+    ctx.moveTo(gap, 0);
+    ctx.lineTo(len, 0);
+    ctx.moveTo(0, -len);
+    ctx.lineTo(0, -gap);
+    ctx.moveTo(0, gap);
+    ctx.lineTo(0, len);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, down ? 3.2 : 2.4, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -341,7 +400,7 @@ export function drawFrame(ctx, video, camera, options = {}) {
     const cursorLocal = toCropLocal(options.cursor.x, options.cursor.y, crop);
     const cx = w / 2 + (cursorLocal.x * w - focus.x) * camera.zoom;
     const cy = h / 2 + (cursorLocal.y * h - focus.y) * camera.zoom;
-    drawCursorGlyph(ctx, options.cursor.style, cx, cy, Boolean(options.cursor.down));
+    drawCursorGlyph(ctx, options.cursor.style, cx, cy, Boolean(options.cursor.down), options.cursor.color);
   }
 }
 

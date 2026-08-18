@@ -118,8 +118,25 @@ async function configureEncoder(encoder, width, height, fps, bitrate) {
       framerate: fps,
       avc: { format: "avc" },
       hardwareAcceleration: social ? "prefer-software" : "prefer-hardware",
-      latencyMode: "realtime",
-      bitrateMode: "constant"
+      // This is an offline export, not a live capture - there's no
+      // real-time deadline to protect, so prefer settings that spend more
+      // effort on compression efficiency instead of keeping up with a
+      // frame clock. Constant bitrate at "realtime" was wasting bits on
+      // simple frames and starving complex ones, which was a real source
+      // of visible quality loss versus the source capture.
+      latencyMode: "quality",
+      bitrateMode: "variable"
+    },
+    {
+      codec: main,
+      width,
+      height,
+      bitrate,
+      framerate: fps,
+      avc: { format: "avc" },
+      hardwareAcceleration: "prefer-hardware",
+      latencyMode: "quality",
+      bitrateMode: "variable"
     },
     {
       codec: main,
@@ -136,7 +153,7 @@ async function configureEncoder(encoder, width, height, fps, bitrate) {
       codec: "avc1.4D4028",
       width,
       height,
-      bitrate: Math.min(bitrate, 8_000_000),
+      bitrate: Math.min(bitrate, 16_000_000),
       framerate: Math.min(30, fps),
       avc: { format: "avc" },
       hardwareAcceleration: "prefer-software",
@@ -146,7 +163,7 @@ async function configureEncoder(encoder, width, height, fps, bitrate) {
       codec: "avc1.42E01E",
       width,
       height,
-      bitrate: Math.min(bitrate, 5_000_000),
+      bitrate: Math.min(bitrate, 8_000_000),
       framerate: Math.min(30, fps),
       avc: { format: "avc" },
       hardwareAcceleration: "prefer-software"
@@ -348,6 +365,7 @@ export async function renderOfflineExport({
   audioTracks,
   crop,
   cursorStyle,
+  cursorColor,
   onProgress
 }) {
   const width = even(outW || video.videoWidth);
@@ -425,7 +443,7 @@ export async function renderOfflineExport({
       lastSource = sourceTime;
       const camera = cameraAt(sourceTime, clips, samples, motion);
       drawOpts.cursor = showCursor
-        ? { style: cursorStyle, ...samplePointer(samples, sourceTime) }
+        ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, sourceTime) }
         : null;
       drawFrame(ctx, video, camera, drawOpts);
       const timestamp = Math.round(outputTime * 1e6);

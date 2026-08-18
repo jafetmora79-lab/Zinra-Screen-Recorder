@@ -5,6 +5,7 @@ export const DEFAULTS = {
   includeAudio: true,
   quality: "1080p",
   cursorStyle: "none",
+  cursorColor: "#e0b44a",
   pro: false
 };
 
@@ -26,9 +27,15 @@ export const CURSOR_STYLES = {
   none: { id: "none", label: "Hidden", pro: false },
   arrow: { id: "arrow", label: "Arrow", pro: false },
   dot: { id: "dot", label: "Dot", pro: false },
+  spotlight: { id: "spotlight", label: "Spotlight", pro: false },
   hand: { id: "hand", label: "Hand", pro: true },
-  ring: { id: "ring", label: "Ring", pro: true }
+  ring: { id: "ring", label: "Ring", pro: true },
+  crosshair: { id: "crosshair", label: "Crosshair", pro: true }
 };
+
+function isHexColor(value) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+}
 
 const LEGACY_ZOOM = new Set([1.85, 1.8, 1.7]);
 
@@ -38,6 +45,7 @@ export function migrateSettings(stored = {}) {
   if (LEGACY_ZOOM.has(zoom)) next.clickZoom = DEFAULTS.clickZoom;
   if (!QUALITY_PRESETS[next.quality]) next.quality = DEFAULTS.quality;
   if (!CURSOR_STYLES[next.cursorStyle]) next.cursorStyle = DEFAULTS.cursorStyle;
+  if (!isHexColor(next.cursorColor)) next.cursorColor = DEFAULTS.cursorColor;
   return next;
 }
 

@@ -306,17 +306,12 @@
       <div id="panelCursor" class="side-panel hidden">
         <p class="panel-kicker">Cursor</p>
         <p class="panel-copy">Tab recordings don't capture the real OS pointer. Draw a synthetic one, or leave it hidden.</p>
-        <label class="field">
-          <span>Style</span>
-          <select id="cursorStyle">
-            <option value="none">Hidden</option>
-            <option value="arrow">Arrow</option>
-            <option value="dot">Dot</option>
-            <option value="hand">Hand · Pro</option>
-            <option value="ring">Ring · Pro</option>
-          </select>
+        <div id="cursorPicker" class="cursor-picker"></div>
+        <p id="cursorProNote" class="cursor-pro-note hidden">That style is Pro. Pick a free style, or unlock Pro.</p>
+        <label id="cursorColorField" class="field">
+          <span>Color</span>
+          <input id="cursorColor" type="color" value="#e0b44a" />
         </label>
-        <p id="cursorProNote" class="cursor-pro-note hidden">That style is Pro. Pick Arrow or Dot, or unlock Pro.</p>
         <p class="panel-kicker">Camera</p>
         <label class="check">
           <input id="smoothMove" type="checkbox" checked />
@@ -367,7 +362,7 @@
 
     <main class="editor-stage">
       <div id="stageFrame" class="stage-frame">
-        <div class="viewport">
+        <div id="viewport" class="viewport">
           <div class="viewport-corners" aria-hidden="true"></div>
           <video id="sourceVideo" class="source-video" playsinline preload="auto"></video>
           <canvas id="editCanvas"></canvas>

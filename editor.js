@@ -1,6 +1,7 @@
 import {
   cameraAt,
   drawFrame,
+  drawCursorGlyph,
   samplePointer,
   sourceFromCanvasPoint,
   resetCameraCache
@@ -183,6 +184,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   const cutTrack = qs("cutTrack");
   const audioTrack = qs("audioTrack");
   const stageFrame = qs("stageFrame");
+  const viewportEl = qs("viewport");
   const playhead = qs("playhead");
   const ctx = canvas.getContext("2d", { alpha: false, colorSpace: "srgb" });
 
@@ -236,6 +238,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   let audioTracks = [];
   let selectedAudioId = null;
   let cursorStyle = CURSOR_STYLES[settings.cursorStyle] ? settings.cursorStyle : "none";
+  let cursorColor = /^#[0-9a-f]{6}$/i.test(settings.cursorColor || "") ? settings.cursorColor : "#e0b44a";
   let crop = { x: 0, y: 0, w: 1, h: 1 };
   let cropDrag = null;
   let duration = 0;
@@ -610,7 +613,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     const clip = selected();
     drawFrame(ctx, video, camera, {
       crop,
-      cursor: cursorStyle !== "none" ? { style: cursorStyle, ...samplePointer(samples, t) } : null,
+      cursor: cursorStyle !== "none" ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, t) } : null,
       focusGuide: !exporting && clip && clip.followCursor === false ? { x: clip.x, y: clip.y } : null
     });
     syncAudioPreview(t);
@@ -1341,12 +1344,76 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("followLagVal").textContent = value < 0.26 ? "Snappy" : value > 0.48 ? "Glide" : "Cinematic";
   });
 
-  qs("cursorStyle").value = cursorStyle;
-  qs("cursorProNote").classList.toggle("hidden", !isProLocked(cursorStyle, settings, CURSOR_STYLES));
-  qs("cursorStyle").addEventListener("change", () => {
-    cursorStyle = qs("cursorStyle").value;
+  const cursorTiles = [];
+  function updateCanvasNativeCursor() {
+    // A synthetic cursor drawn on the canvas competes visually with your
+    // real mouse pointer hovering the same area - hide the real one so
+    // scrubbing/previewing never looks like a doubled cursor. This has to
+    // be set on the whole viewport (not just the canvas) - fast pointer
+    // moves cross the canvas's own edge often enough that a canvas-only
+    // rule let the native arrow flash back in mid-glide.
+    viewportEl.style.cursor = cursorStyle !== "none" ? "none" : "";
+  }
+  function refreshCursorPicker() {
+    for (const tile of cursorTiles) {
+      tile.el.classList.toggle("selected", tile.id === cursorStyle);
+      const ctx2d = tile.ctx;
+      ctx2d.clearRect(0, 0, 40, 40);
+      if (tile.id === "none") {
+        ctx2d.strokeStyle = "#9a9386";
+        ctx2d.lineWidth = 1.6;
+        ctx2d.beginPath();
+        ctx2d.arc(20, 20, 10, 0, Math.PI * 2);
+        ctx2d.moveTo(13, 13);
+        ctx2d.lineTo(27, 27);
+        ctx2d.stroke();
+      } else {
+        drawCursorGlyph(ctx2d, tile.id, 20, 20, false, cursorColor);
+      }
+    }
     qs("cursorProNote").classList.toggle("hidden", !isProLocked(cursorStyle, settings, CURSOR_STYLES));
-    chrome.storage.sync.set({ cursorStyle }).catch(() => {});
+    qs("cursorColorField").classList.toggle("hidden", cursorStyle === "none");
+    updateCanvasNativeCursor();
+  }
+  function buildCursorPicker() {
+    const wrap = qs("cursorPicker");
+    wrap.innerHTML = "";
+    cursorTiles.length = 0;
+    for (const [id, preset] of Object.entries(CURSOR_STYLES)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cursor-tile";
+      btn.title = preset.label;
+      const previewCanvas = document.createElement("canvas");
+      previewCanvas.width = 40;
+      previewCanvas.height = 40;
+      const label = document.createElement("span");
+      label.className = "cursor-tile-label";
+      label.textContent = preset.label;
+      btn.append(previewCanvas, label);
+      if (preset.pro) {
+        const badge = document.createElement("span");
+        badge.className = "cursor-tile-pro";
+        badge.textContent = "PRO";
+        btn.appendChild(badge);
+      }
+      btn.addEventListener("click", () => {
+        cursorStyle = id;
+        chrome.storage.sync.set({ cursorStyle }).catch(() => {});
+        refreshCursorPicker();
+        render();
+      });
+      wrap.appendChild(btn);
+      cursorTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d") });
+    }
+    refreshCursorPicker();
+  }
+  buildCursorPicker();
+  qs("cursorColor").value = cursorColor;
+  qs("cursorColor").addEventListener("input", () => {
+    cursorColor = qs("cursorColor").value;
+    chrome.storage.sync.set({ cursorColor }).catch(() => {});
+    refreshCursorPicker();
     render();
   });
 
@@ -1499,6 +1566,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         audioTracks,
         crop,
         cursorStyle,
+        cursorColor,
         onProgress(pct, outputTime) {
           setExportStatus(`Exporting ${Math.round(pct * 100)}% · ${formatClock(outputTime)}`, pct);
         }

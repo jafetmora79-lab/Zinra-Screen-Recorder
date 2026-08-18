@@ -70,9 +70,14 @@ export function exportVideoBitrate(width, height, fps) {
   const w = width || 1920;
   const h = height || 1080;
   const rate = Math.max(24, fps || 30);
-  // Instagram / TikTok transcode rejects very high bitrates and 4:4:4 High profile.
-  const estimated = Math.round(w * h * rate * 0.06);
-  return Math.min(8_000_000, Math.max(3_000_000, estimated));
+  // Capture already runs at 20-80Mbps (see videoBitrate above) - exporting
+  // at a much lower bitrate was the actual source of visible quality loss
+  // on export, not the offline seek/re-encode pipeline itself. ~0.12
+  // bits/pixel/frame keeps the export close to capture quality; the ceiling
+  // scales with resolution instead of one flat cap so 4K isn't squeezed
+  // down to roughly 1080p-grade bits.
+  const estimated = Math.round(w * h * rate * 0.12);
+  return Math.min(60_000_000, Math.max(6_000_000, estimated));
 }
 
 export function exportFps(captureFps) {
