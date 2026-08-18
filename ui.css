@@ -615,6 +615,13 @@ body.is-live .preview-wrap {
 
 .cursor-tile.selected .cursor-tile-label { color: var(--text); }
 
+.cursor-tile.locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+.cursor-tile.locked:hover { border-color: var(--line); background: var(--bg-3); }
+
 .cursor-tile-pro {
   position: absolute;
   top: 4px;

@@ -1383,6 +1383,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   function refreshCursorPicker() {
     for (const tile of cursorTiles) {
       tile.el.classList.toggle("selected", tile.id === cursorStyle);
+      tile.el.classList.toggle("locked", Boolean(tile.locked));
       const ctx2d = tile.ctx;
       ctx2d.clearRect(0, 0, 40, 40);
       if (tile.id === "none") {
@@ -1422,14 +1423,24 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         badge.textContent = "PRO";
         btn.appendChild(badge);
       }
+      // Share-tab footage already has a real cursor baked into the pixels -
+      // there's never a good reason to layer a synthetic one on top of that,
+      // so those styles are locked out entirely rather than just defaulted
+      // away (a default can still be clicked past; a lock can't).
+      const locked = hasRealCursor && id !== "none";
+      if (locked) {
+        btn.disabled = true;
+        btn.title = "Locked - this take already has a real cursor baked in from Share tab.";
+      }
       btn.addEventListener("click", () => {
+        if (locked) return;
         cursorStyle = id;
         chrome.storage.sync.set({ cursorStyle }).catch(() => {});
         refreshCursorPicker();
         render();
       });
       wrap.appendChild(btn);
-      cursorTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d") });
+      cursorTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d"), locked });
     }
     refreshCursorPicker();
   }
@@ -1707,7 +1718,10 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         audioBlob,
         audioTracks,
         crop,
-        cursorStyle,
+        // Enforced here too, not just in the picker UI: a real cursor
+        // baked into share-tab footage must never get a synthetic one
+        // layered on top, no matter what cursorStyle currently holds.
+        cursorStyle: hasRealCursor ? "none" : cursorStyle,
         cursorColor,
         clicks,
         clickEffectStyle,
