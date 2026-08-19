@@ -360,12 +360,21 @@
           </div>
         </div>
 
-        <p class="panel-kicker">Blur</p>
-        <div id="backgroundBlurPicker" class="seg-group"></div>
+        <div id="backgroundBlurSection">
+          <p class="panel-kicker">Blur</p>
+          <div id="backgroundBlurPicker" class="seg-group"></div>
+          <p id="backgroundBlurNote" class="panel-copy hidden">Only visible with a Blurred style — Solid and Gradient fill edge to edge.</p>
+        </div>
 
         <p class="panel-kicker">Padding</p>
         <label class="field">
-          <span>Amount <em id="backgroundPaddingVal">0%</em></span>
+          <span>
+            Amount
+            <span class="num-field">
+              <input id="backgroundPaddingNum" type="number" min="0" max="35" step="1" value="0" />
+              <em>%</em>
+            </span>
+          </span>
           <input id="backgroundPaddingInput" type="range" min="0" max="0.35" step="0.01" value="0" />
         </label>
         <p class="panel-copy">Insets the recording so the background shows around it.</p>
@@ -438,11 +447,11 @@
       <div id="timelineScroll" class="timeline-scroll">
         <div class="timeline-labels">
           <div class="ruler-spacer"></div>
-          <div class="track-label"><i class="swatch video"></i>Video</div>
-          <div class="track-label"><i class="swatch zoom"></i>Zoom</div>
-          <div class="track-label"><i class="swatch speed"></i>Speed</div>
-          <div class="track-label"><i class="swatch cut"></i>Cut</div>
-          <div class="track-label"><i class="swatch audio"></i>Audio</div>
+          <div class="track-label" data-track="video"><i class="swatch video"></i>Video</div>
+          <div class="track-label" data-track="zoom"><i class="swatch zoom"></i>Zoom</div>
+          <div class="track-label" data-track="speed"><i class="swatch speed"></i>Speed</div>
+          <div class="track-label" data-track="cut"><i class="swatch cut"></i>Cut</div>
+          <div class="track-label" data-track="audio"><i class="swatch audio"></i>Audio</div>
         </div>
         <div id="timelineInner" class="timeline-inner">
           <div id="ruler" class="ruler"></div>

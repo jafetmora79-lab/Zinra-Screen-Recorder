@@ -501,6 +501,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       });
       d.trackEl.appendChild(el);
     }
+    const isEmpty = d.getList().length === 0;
+    d.trackEl.classList.toggle("is-empty", isEmpty);
+    document.querySelector(`.track-label[data-track="${segKindOf(d)}"]`)?.classList.toggle("is-empty", isEmpty);
     d.syncPanel();
   }
 
@@ -736,9 +739,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       el.style.left = `${clip.start * pps}px`;
       el.style.width = `${Math.max(clipMinPx(), clip.duration * pps)}px`;
       el.dataset.id = clip.id;
+      el.dataset.reason = clip.reason || "manual";
+      el.title = clip.reason === "click" ? "From a click" : clip.reason === "type" ? "From typing" : "Placed by hand";
       el.innerHTML = `
         <span class="trim-handle left" data-mode="start"></span>
-        <span class="zoom-clip-label">${Number(clip.zoom || DEPTH_PRESETS.moderate).toFixed(1)}×</span>
+        <span class="zoom-clip-label"><span class="zoom-clip-glyph" aria-hidden="true"></span>${Number(clip.zoom || DEPTH_PRESETS.moderate).toFixed(1)}×</span>
         <span class="seg-remove" title="Delete">×</span>
         <span class="trim-handle right" data-mode="end"></span>
       `;
@@ -1528,6 +1533,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       backgroundStyle = id;
       refreshBackgroundStylePicker();
       refreshBackgroundColorWrap();
+      refreshBackgroundBlurAvailability();
       buildBackgroundColorPicker();
       saveBackground();
       render();
@@ -1543,10 +1549,20 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     });
   }
 
+  function refreshBackgroundBlurAvailability() {
+    const active = backgroundStyle === "blurred";
+    qs("backgroundBlurSection").classList.toggle("dim", !active);
+    qs("backgroundBlurNote").classList.toggle("hidden", active);
+    qs("backgroundBlurPicker").querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.disabled = !active;
+    });
+  }
+
   refreshBackgroundStylePicker();
   refreshBackgroundColorWrap();
   buildBackgroundColorPicker();
   refreshBackgroundBlurPicker();
+  refreshBackgroundBlurAvailability();
 
   qs("backgroundColorAInput").value = backgroundColorA;
   qs("backgroundColorAInput").addEventListener("input", () => {
@@ -1561,14 +1577,23 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     render();
   });
 
-  qs("backgroundPaddingInput").value = backgroundPadding;
-  qs("backgroundPaddingVal").textContent = `${Math.round(backgroundPadding * 100)}%`;
+  function syncBackgroundPaddingUI() {
+    qs("backgroundPaddingInput").value = backgroundPadding;
+    qs("backgroundPaddingNum").value = Math.round(backgroundPadding * 100);
+  }
+  syncBackgroundPaddingUI();
   qs("backgroundPaddingInput").addEventListener("input", () => {
     backgroundPadding = clampRange(Number(qs("backgroundPaddingInput").value) || 0, 0, 0.35);
-    qs("backgroundPaddingVal").textContent = `${Math.round(backgroundPadding * 100)}%`;
+    syncBackgroundPaddingUI();
     render();
   });
   qs("backgroundPaddingInput").addEventListener("change", saveBackground);
+  qs("backgroundPaddingNum").addEventListener("input", () => {
+    backgroundPadding = clampRange((Number(qs("backgroundPaddingNum").value) || 0) / 100, 0, 0.35);
+    syncBackgroundPaddingUI();
+    render();
+  });
+  qs("backgroundPaddingNum").addEventListener("change", saveBackground);
 
   qs("fullscreenBtn").addEventListener("click", () => {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -1656,6 +1681,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     const left = remainingFreeExports(settings);
     note.textContent = left > 0 ? `${left} free export${left === 1 ? "" : "s"} left` : "No free exports left";
+    note.title = "Every export uses 1 credit, at any resolution.";
     note.classList.remove("hidden");
   }
   updateExportCredits();
