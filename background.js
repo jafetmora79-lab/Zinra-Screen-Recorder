@@ -76,9 +76,12 @@ async function disarmTab(tabId) {
   }).catch(() => {});
 }
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   const current = await chrome.storage.sync.get(null);
   await chrome.storage.sync.set(migrateSettings(current));
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: "https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/playground.html" }).catch(() => {});
+  }
 });
 
 chrome.runtime.onConnect.addListener((port) => {
