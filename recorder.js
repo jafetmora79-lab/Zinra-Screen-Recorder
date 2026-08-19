@@ -21,6 +21,7 @@ const statusDot = document.getElementById("statusDot");
 
 const params = new URLSearchParams(location.search);
 const targetTabId = Number(params.get("tab"));
+const captureMode = params.get("mode") === "screen" ? "screen" : "tab";
 
 let mediaStream = null;
 let recorder = null;
@@ -237,7 +238,7 @@ async function begin(stream, settings) {
   shareBtn.classList.add("hidden");
   setStatus("live");
   showError("");
-  chrome.runtime.sendMessage({ type: "recording-started" }).catch(() => {});
+  chrome.runtime.sendMessage({ type: "recording-started", mode: captureMode }).catch(() => {});
 }
 
 function openEdit() {
@@ -316,6 +317,21 @@ function showManualStart(message) {
   showError(message || "");
 }
 
+// Screen/window capture needs a real click to satisfy getDisplayMedia's user
+// -gesture requirement, so it can't auto-start like tab capture does - this
+// is the very first thing shown, not a fallback after a failed attempt.
+function showScreenModeStart() {
+  setStatus("idle");
+  startBtn.classList.add("hidden");
+  shareBtn.classList.remove("hidden");
+  shareBtn.classList.remove("ghost");
+  shareBtn.classList.add("primary");
+  const label = shareBtn.querySelector(".btn-label");
+  if (label) label.textContent = "Share your screen";
+  hint.textContent = "Pick the screen or window to record. Chrome shows its own picker and a small sharing bar while you're live — that's normal, and you'll be sent back to what you were doing once sharing starts.";
+  hint.classList.remove("hidden");
+}
+
 startBtn.addEventListener("click", async () => {
   try {
     const settings = await getSettings();
@@ -387,6 +403,10 @@ window.addEventListener("beforeunload", () => {
 });
 
 (async function start() {
+  if (captureMode === "screen") {
+    showScreenModeStart();
+    return;
+  }
   const fallback = window.setTimeout(() => {
     if (recording) return;
     startBtn.classList.remove("hidden");

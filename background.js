@@ -1,6 +1,7 @@
 import { migrateSettings } from "./settings.js";
 
 let recordingTabId = null;
+let screenOriginTabId = null;
 let recorderTabId = null;
 let recorderPort = null;
 const pendingPointer = [];
@@ -58,6 +59,7 @@ chrome.tabs.onRemoved.addListener((id) => {
     disarmTab(recordingTabId);
     recorderTabId = null;
     recordingTabId = null;
+    screenOriginTabId = null;
     recorderPort = null;
     chrome.action.setBadgeText({ text: "" });
   }
@@ -67,7 +69,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "get-state") {
     chrome.storage.sync.get(null).then((stored) => {
       sendResponse({
-        recording: Boolean(recordingTabId),
+        recording: Boolean(recorderTabId),
         recordingTabId,
         settings: migrateSettings(stored)
       });
@@ -81,7 +83,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "start") {
-    startRecording(msg.tabId).then(() => sendResponse({ ok: true })).catch((err) => {
+    startRecording(msg.tabId, msg.mode).then(() => sendResponse({ ok: true })).catch((err) => {
       sendResponse({ ok: false, error: err.message });
     });
     return true;
@@ -104,12 +106,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.action.setBadgeText({ text: "REC" });
     chrome.action.setBadgeBackgroundColor({ color: "#c45c4a" });
     if (recordingTabId) {
+      // Tab capture: the content script needs re-arming on the recorded tab
+      // (it may have been torn down while the recorder tab was loading), then
+      // that tab comes back into focus so the user is looking at what's live.
       chrome.scripting.executeScript({
         target: { tabId: recordingTabId, allFrames: false },
         files: ["content.js"]
       }).catch(() => {});
       chrome.tabs.sendMessage(recordingTabId, { type: "zinra-arm" }).catch(() => {});
       chrome.tabs.update(recordingTabId, { active: true }).catch(() => {});
+    } else if (screenOriginTabId) {
+      // Screen/window capture has no single tab to arm - just hand focus
+      // back to whatever the user was on before they started sharing.
+      chrome.tabs.update(screenOriginTabId, { active: true }).catch(() => {});
     }
     sendResponse({ ok: true });
     return false;
@@ -119,6 +128,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.action.setBadgeText({ text: "" });
     disarmTab(recordingTabId);
     recordingTabId = null;
+    screenOriginTabId = null;
     sendResponse({ ok: true });
     return false;
   }
@@ -132,7 +142,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return false;
 });
 
-async function startRecording(tabId) {
+async function startRecording(tabId, mode) {
   if (recorderTabId) {
     try {
       await chrome.tabs.update(recorderTabId, { active: true });
@@ -142,16 +152,26 @@ async function startRecording(tabId) {
     }
   }
 
-  recordingTabId = tabId;
-  await chrome.scripting.executeScript({
-    target: { tabId, allFrames: false },
-    files: ["content.js"]
-  }).catch(() => {});
-  await chrome.tabs.sendMessage(tabId, { type: "zinra-arm" }).catch(() => {});
-
+  const isScreen = mode === "screen";
   const source = await chrome.tabs.get(tabId);
+
+  if (isScreen) {
+    // Screen/window capture isn't tied to a single tab - there's nothing to
+    // inject a pointer-tracking content script into, so auto-zoom-on-click
+    // simply won't have a signal to work from outside a Chrome tab. Just
+    // remember where to send focus back once sharing starts.
+    screenOriginTabId = tabId;
+  } else {
+    recordingTabId = tabId;
+    await chrome.scripting.executeScript({
+      target: { tabId, allFrames: false },
+      files: ["content.js"]
+    }).catch(() => {});
+    await chrome.tabs.sendMessage(tabId, { type: "zinra-arm" }).catch(() => {});
+  }
+
   const rec = await chrome.tabs.create({
-    url: chrome.runtime.getURL(`recorder.html?tab=${tabId}`),
+    url: chrome.runtime.getURL(`recorder.html?tab=${tabId}&mode=${isScreen ? "screen" : "tab"}`),
     windowId: source.windowId,
     index: (source.index ?? 0) + 1,
     active: true

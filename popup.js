@@ -11,6 +11,7 @@ const fields = {
 const clickZoomVal = document.getElementById("clickZoomVal");
 const zoomDurationVal = document.getElementById("zoomDurationVal");
 const recordBtn = document.getElementById("recordBtn");
+const recordScreenBtn = document.getElementById("recordScreenBtn");
 const errorEl = document.getElementById("error");
 const statusDot = document.getElementById("statusDot");
 
@@ -43,6 +44,7 @@ function applySettings(settings) {
 function setRecordUi(recording) {
   const icon = recordBtn.querySelector(".ui-icon");
   const label = recordBtn.querySelector(".btn-label");
+  recordScreenBtn.classList.toggle("hidden", recording);
   if (recording) {
     if (icon) icon.src = "icons/svg/stop.svg";
     if (label) label.textContent = "Stop recording";
@@ -92,7 +94,19 @@ recordBtn.addEventListener("click", async () => {
     showError("Open a normal webpage first — Chrome pages can’t be captured.");
     return;
   }
-  const result = await chrome.runtime.sendMessage({ type: "start", tabId: tab.id });
+  const result = await chrome.runtime.sendMessage({ type: "start", tabId: tab.id, mode: "tab" });
+  if (!result?.ok) {
+    showError(result?.error || "Could not start recording.");
+    return;
+  }
+  window.close();
+});
+
+recordScreenBtn.addEventListener("click", async () => {
+  showError("");
+  await persist();
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const result = await chrome.runtime.sendMessage({ type: "start", tabId: tab?.id, mode: "screen" });
   if (!result?.ok) {
     showError(result?.error || "Could not start recording.");
     return;
