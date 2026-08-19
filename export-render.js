@@ -86,6 +86,13 @@ export function buildExportFrames({ trimStart, trimEnd, fps, speeds, cuts }) {
   return frames;
 }
 
+async function waitForFrameData(video, maxMs) {
+  const start = performance.now();
+  while (video.readyState < 2 && performance.now() - start < maxMs) {
+    await sleep(8);
+  }
+}
+
 function seekTo(video, time) {
   const duration = Number.isFinite(video.duration) ? video.duration : time + 1;
   const target = clamp(time, 0, Math.max(0, duration - 0.0005));
@@ -94,17 +101,25 @@ function seekTo(video, time) {
   }
   return new Promise((resolve) => {
     let done = false;
-    const finish = () => {
+    const finish = async () => {
       if (done) return;
       done = true;
       video.removeEventListener("seeked", finish);
       video.removeEventListener("error", finish);
+      // "seeked" (or the timeout below) only means the seek was *requested* -
+      // on a slow decode, readyState can still lag a beat behind that. Draw
+      // Frame() skips the actual video draw whenever readyState < 2, which
+      // used to mean that frame encoded as nothing but the background fill -
+      // a full-frame flash of whatever color was last set, background style
+      // notwithstanding. Give the decoder a little more room to catch up
+      // before handing control back to the render loop.
+      await waitForFrameData(video, 300);
       resolve();
     };
     video.addEventListener("seeked", finish);
     video.addEventListener("error", finish);
     video.currentTime = target;
-    setTimeout(finish, 70);
+    setTimeout(finish, 250);
   });
 }
 
@@ -446,7 +461,13 @@ export async function renderOfflineExport({
       lastSource = sourceTime;
       const camera = cameraAt(sourceTime, clips, samples, motion);
       drawOpts.clickEffects = showClickEffects ? activeClickEffects(clicks, sourceTime) : null;
-      drawFrame(ctx, video, camera, drawOpts);
+      // On the rare frame where the decoder still isn't ready even after
+      // seekTo's wait, drawFrame() would skip the video draw and leave just
+      // the background fill on screen - a full-frame flash of whatever
+      // color that background last was. Reusing the previous frame's
+      // already-drawn pixels (a one-frame duplicate) is far less visible
+      // than that, so only redraw once there's real data to show.
+      if (i === 0 || video.readyState >= 2) drawFrame(ctx, video, camera, drawOpts);
       const timestamp = Math.round(outputTime * 1e6);
       const durationUs = Math.round(1e6 / fps);
       let frame;
