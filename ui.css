@@ -16,7 +16,7 @@
   --audio: #b98a4e;
   --danger: #c45c4a;
   --radius: 10px;
-  --font: "Segoe UI", Inter, system-ui, sans-serif;
+  --font: Inter, "Segoe UI", system-ui, sans-serif;
   --mono: "Cascadia Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 
@@ -360,8 +360,9 @@ body.is-live .preview-wrap {
   position: relative;
   display: grid;
   grid-template-columns: 300px 1fr;
-  grid-template-rows: 56px minmax(0, 1fr) 352px;
-  height: 100vh;
+  grid-template-rows: 56px minmax(0, 1fr) clamp(220px, 34vh, 352px);
+  height: 100dvh;
+  max-width: 100vw;
   background:
     radial-gradient(1200px 500px at 70% -10%, rgba(224, 180, 74, 0.08), transparent 50%),
     var(--bg);
@@ -369,6 +370,7 @@ body.is-live .preview-wrap {
 
 .editor-top {
   grid-column: 1 / -1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -380,7 +382,7 @@ body.is-live .preview-wrap {
 }
 
 .editor-top h1 { font-size: 16px; }
-.editor-top-actions { display: flex; align-items: center; gap: 12px; }
+.editor-top-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 1; min-width: 0; }
 .export-status {
   color: var(--muted);
   font-size: 12px;
@@ -389,6 +391,16 @@ body.is-live .preview-wrap {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.brand.compact { min-width: 34px; flex-shrink: 1; overflow: hidden; }
+.time-label { flex-shrink: 0; }
+.export-credits {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quality-field, #exportBtn { flex-shrink: 0; }
 
 .editor-side {
   border-right: 1px solid var(--line);
@@ -741,12 +753,12 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
 
 .editor-timeline {
   grid-column: 1 / -1;
+  min-width: 0;
+  min-height: 0;
   border-top: 1px solid var(--line);
   background: #1a1916;
   display: flex;
   flex-direction: column;
-  min-height: 352px;
-  height: 352px;
 }
 
 .transport {
@@ -755,14 +767,20 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
   gap: 8px;
   padding: 8px 12px;
   flex: 0 0 auto;
+  min-width: 0;
 }
 
-.transport-spacer { flex: 1; }
+.transport-spacer { flex: 1; min-width: 8px; }
 
 .kbd-hint {
   color: var(--muted);
   font: 11px var(--mono);
   opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .btn.icon {

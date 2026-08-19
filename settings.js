@@ -39,7 +39,9 @@ export const CLICK_EFFECTS = {
   none: { id: "none", label: "None", pro: false },
   ripple: { id: "ripple", label: "Ripple", pro: false },
   wave: { id: "wave", label: "Wave", pro: true },
-  spark: { id: "spark", label: "Spark", pro: true }
+  spark: { id: "spark", label: "Spark", pro: true },
+  bloom: { id: "bloom", label: "Bloom", pro: true },
+  pop: { id: "pop", label: "Pop", pro: true }
 };
 
 export const BACKGROUND_STYLES = {

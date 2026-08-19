@@ -267,6 +267,19 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// A quick, tight flash exactly at the origin - gives the eye a precise
+// anchor point so ring-only effects (ripple, wave) read as landing right on
+// the click instead of just "somewhere near" an expanding circle.
+function drawCenterAnchor(ctx, progress, color) {
+  const window = 0.22;
+  if (progress >= window) return;
+  const dotFade = 1 - progress / window;
+  ctx.beginPath();
+  ctx.arc(0, 0, 3, 0, Math.PI * 2);
+  ctx.fillStyle = colorWithAlpha(color, dotFade * 0.95);
+  ctx.fill();
+}
+
 // progress runs 0 (just clicked) to 1 (effect fully faded) over its window.
 export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
   const fade = 1 - progress;
@@ -280,6 +293,7 @@ export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
     ctx.strokeStyle = colorWithAlpha(color, fade * 0.9);
     ctx.lineWidth = 1 + fade * 3;
     ctx.stroke();
+    drawCenterAnchor(ctx, progress, color);
   } else if (style === "wave") {
     for (let i = 0; i < 3; i++) {
       const raw = progress - i * 0.16;
@@ -292,6 +306,7 @@ export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+    drawCenterAnchor(ctx, progress, color);
   } else if (style === "spark") {
     const count = 8;
     const len = 6 + progress * 18;
@@ -305,6 +320,30 @@ export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
       ctx.lineTo(Math.cos(angle) * (inner + len), Math.sin(angle) * (inner + len));
       ctx.stroke();
     }
+    drawCenterAnchor(ctx, progress, color);
+  } else if (style === "bloom") {
+    const r = 10 + progress * 26;
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, colorWithAlpha(color, fade * 0.55));
+    grad.addColorStop(1, colorWithAlpha(color, 0));
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    drawCenterAnchor(ctx, progress, color);
+  } else if (style === "pop") {
+    const bounce = progress < 0.35 ? progress / 0.35 : 1 - ((progress - 0.35) / 0.65) * 0.4;
+    const dotR = 4 + bounce * 10;
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1, dotR), 0, Math.PI * 2);
+    ctx.fillStyle = colorWithAlpha(color, fade);
+    ctx.fill();
+    const ringR = 8 + progress * 22;
+    ctx.beginPath();
+    ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = colorWithAlpha(color, fade * 0.6);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
   ctx.restore();
 }
