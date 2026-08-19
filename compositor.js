@@ -456,6 +456,122 @@ export function drawFrame(ctx, video, camera, options = {}) {
   }
 
   ctx.restore();
+
+  // Webcam sits in output-frame space (a HUD), not inside the punched-in
+  // page, so it is drawn after the inset restore and never zooms with the
+  // camera. Same path for live preview and offline export.
+  if (options.webcam?.enabled !== false && options.webcam?.video) {
+    drawWebcamBubble(ctx, options.webcam, w, h);
+  }
+}
+
+export function normalizeWebcam(layout = {}) {
+  const x = Number(layout.x);
+  const y = Number(layout.y);
+  const size = Number(layout.size);
+  return {
+    enabled: layout.enabled !== false,
+    mirror: layout.mirror !== false,
+    x: clamp(Number.isFinite(x) ? x : 0.86, 0, 1),
+    y: clamp(Number.isFinite(y) ? y : 0.84, 0, 1),
+    size: clamp(Number.isFinite(size) ? size : 0.22, 0.08, 0.55)
+  };
+}
+
+export function webcamMetrics(layout, w, h) {
+  const next = normalizeWebcam(layout);
+  const r = (next.size * Math.min(w, h)) / 2;
+  return {
+    ...next,
+    r,
+    cx: clamp(next.x * w, r, Math.max(r, w - r)),
+    cy: clamp(next.y * h, r, Math.max(r, h - r))
+  };
+}
+
+export function hitWebcamHandle(layout, canvas, clientX, clientY) {
+  if (!layout || layout.enabled === false || !canvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const x = ((clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((clientY - rect.top) / rect.height) * canvas.height;
+  const m = webcamMetrics(layout, canvas.width, canvas.height);
+  const dist = Math.hypot(x - m.cx, y - m.cy);
+  if (dist > m.r + 10) return null;
+  if (dist > m.r * 0.68) return "resize";
+  return "move";
+}
+
+function canvasPoint(canvas, clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((clientX - rect.left) / Math.max(1, rect.width)) * canvas.width,
+    y: ((clientY - rect.top) / Math.max(1, rect.height)) * canvas.height,
+    rect
+  };
+}
+
+export function moveWebcamTo(layout, canvas, clientX, clientY) {
+  const pt = canvasPoint(canvas, clientX, clientY);
+  const next = normalizeWebcam(layout);
+  next.x = clamp(pt.x / Math.max(1, canvas.width), 0, 1);
+  next.y = clamp(pt.y / Math.max(1, canvas.height), 0, 1);
+  return next;
+}
+
+export function resizeWebcamTo(layout, canvas, clientX, clientY) {
+  const pt = canvasPoint(canvas, clientX, clientY);
+  const m = webcamMetrics(layout, canvas.width, canvas.height);
+  const dist = Math.hypot(pt.x - m.cx, pt.y - m.cy);
+  const next = normalizeWebcam(layout);
+  next.size = clamp((2 * dist) / Math.min(canvas.width, canvas.height), 0.08, 0.55);
+  return next;
+}
+
+function drawWebcamBubble(ctx, webcam, w, h) {
+  const video = webcam.video;
+  if (!video || video.readyState < 2 || !(video.videoWidth > 0)) return;
+  const m = webcamMetrics(webcam, w, h);
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const d = m.r * 2;
+  const scale = Math.max(d / vw, d / vh);
+  const dw = vw * scale;
+  const dh = vh * scale;
+  const overlayScale = Math.max(0.9, Math.min(w, h) / 1080);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2);
+  ctx.clip();
+  if (webcam.mirror !== false) {
+    ctx.translate(m.cx, m.cy);
+    ctx.scale(-1, 1);
+    ctx.translate(-m.cx, -m.cy);
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = webcam.fast ? "medium" : "high";
+  ctx.drawImage(video, m.cx - dw / 2, m.cy - dh / 2, dw, dh);
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(224, 180, 74, 0.92)";
+  ctx.lineWidth = Math.max(2, 2.4 * overlayScale);
+  ctx.stroke();
+  if (webcam.edit) {
+    const kx = m.cx + m.r * Math.cos(Math.PI / 4);
+    const ky = m.cy + m.r * Math.sin(Math.PI / 4);
+    ctx.beginPath();
+    ctx.arc(kx, ky, 5.5 * overlayScale, 0, Math.PI * 2);
+    ctx.fillStyle = "#e0b44a";
+    ctx.fill();
+    ctx.strokeStyle = "#1a1916";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 export function sourceFromCanvasPoint(camera, canvas, clientX, clientY, crop) {
@@ -472,5 +588,102 @@ export function sourceFromCanvasPoint(camera, canvas, clientX, clientY, crop) {
   return {
     x: clamp(c.x + clamp(sourceX / w, 0, 1) * c.w, 0, 1),
     y: clamp(c.y + clamp(sourceY / h, 0, 1) * c.h, 0, 1)
+  };
+}
+
+function isPadPixel(r, g, b, allowBlack) {
+  // DXGI / Chrome window+tab capture leftover is typically saturated green
+  // that flickers as the unused texture rows get recycled.
+  if (g >= 70 && g >= r + 26 && g >= b + 26) return true;
+  if (allowBlack && r <= 10 && g <= 10 && b <= 10) return true;
+  return false;
+}
+
+export function sampleLetterboxFrame(video, maxWidth = 640) {
+  const srcW = video.videoWidth || 0;
+  const srcH = video.videoHeight || 0;
+  if (!srcW || !srcH || video.readyState < 2) return null;
+  const width = Math.min(srcW, maxWidth);
+  const height = Math.max(1, Math.round(srcH * (width / srcW)));
+  const canvas = sampleLetterboxFrame._canvas || (sampleLetterboxFrame._canvas = document.createElement("canvas"));
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, width, height);
+  return ctx.getImageData(0, 0, width, height);
+}
+
+export function detectLetterboxCrop(frames, options = {}) {
+  const allowBlack = options.allowBlack !== false;
+  const list = (Array.isArray(frames) ? frames : [frames]).filter(Boolean);
+  if (!list.length) return { x: 0, y: 0, w: 1, h: 1 };
+  const width = list[0].width;
+  const height = list[0].height;
+  if (!width || !height || width < 16 || height < 16) return { x: 0, y: 0, w: 1, h: 1 };
+
+  function rowIsPad(y) {
+    let votes = 0;
+    for (const frame of list) {
+      if (frame.width !== width || frame.height !== height) continue;
+      const data = frame.data;
+      let pad = 0;
+      let n = 0;
+      const step = Math.max(1, (width / 96) | 0);
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
+        n += 1;
+        if (isPadPixel(data[i], data[i + 1], data[i + 2], allowBlack)) pad += 1;
+      }
+      if (n && pad / n >= 0.86) votes += 1;
+    }
+    return votes >= Math.max(1, Math.ceil(list.length / 2));
+  }
+
+  function colIsPad(x, y0, y1) {
+    let votes = 0;
+    for (const frame of list) {
+      const data = frame.data;
+      let pad = 0;
+      let n = 0;
+      const step = Math.max(1, ((y1 - y0) / 64) | 0);
+      for (let y = y0; y <= y1; y += step) {
+        const i = (y * width + x) * 4;
+        n += 1;
+        if (isPadPixel(data[i], data[i + 1], data[i + 2], allowBlack)) pad += 1;
+      }
+      if (n && pad / n >= 0.86) votes += 1;
+    }
+    return votes >= Math.max(1, Math.ceil(list.length / 2));
+  }
+
+  let top = 0;
+  const maxTop = Math.floor(height * 0.3);
+  while (top < maxTop && rowIsPad(top)) top += 1;
+  let bottom = height - 1;
+  const minBottom = Math.ceil(height * 0.7);
+  while (bottom > minBottom && rowIsPad(bottom)) bottom -= 1;
+
+  const contentH = bottom - top + 1;
+  if (top < 2 && height - 1 - bottom < 2) return { x: 0, y: 0, w: 1, h: 1 };
+  if (contentH / height < 0.55) return { x: 0, y: 0, w: 1, h: 1 };
+
+  let left = 0;
+  const maxLeft = Math.floor(width * 0.22);
+  while (left < maxLeft && colIsPad(left, top, bottom)) left += 1;
+  let right = width - 1;
+  const minRight = Math.ceil(width * 0.78);
+  while (right > minRight && colIsPad(right, top, bottom)) right -= 1;
+
+  const contentW = right - left + 1;
+  if (contentW / width < 0.55) {
+    left = 0;
+    right = width - 1;
+  }
+
+  return {
+    x: left / width,
+    y: top / height,
+    w: (right - left + 1) / width,
+    h: contentH / height
   };
 }

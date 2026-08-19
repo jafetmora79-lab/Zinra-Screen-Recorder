@@ -4,10 +4,12 @@ let recordingTabId = null;
 let screenOriginTabId = null;
 let recorderTabId = null;
 let recorderPort = null;
+let pendingDesktopId = null;
+let pendingDesktopTimer = 0;
 let recordingLive = false;
 let screenTrackClicks = false;
 let armedScreenTabId = null;
-const bubbleTabIds = new Set();
+let stopPanelWindowId = null;
 const pendingPointer = [];
 
 async function armTab(tabId) {
@@ -26,24 +28,34 @@ async function retargetScreenTracking(tabId) {
   armedScreenTabId = tabId;
 }
 
-async function injectBubble(tabId) {
-  if (!tabId || tabId === recorderTabId || bubbleTabIds.has(tabId)) return;
+async function openStopPanel(returnTabId) {
+  if (stopPanelWindowId) return;
   try {
-    await chrome.scripting.executeScript({
-      target: { tabId, allFrames: false },
-      files: ["stop-bubble.js"]
+    const current = await chrome.windows.getLastFocused();
+    const width = 236;
+    const height = 88;
+    const left = Math.max(0, (current.left || 0) + (current.width || 1200) - width - 20);
+    const top = Math.max(0, (current.top || 0) + (current.height || 800) - height - 28);
+    const win = await chrome.windows.create({
+      url: chrome.runtime.getURL("stop-panel.html"),
+      type: "popup",
+      focused: false,
+      width,
+      height,
+      left,
+      top
     });
-    bubbleTabIds.add(tabId);
+    stopPanelWindowId = win?.id || null;
+    if (returnTabId) chrome.tabs.update(returnTabId, { active: true }).catch(() => {});
   } catch {
-    // Page doesn't allow content scripts (chrome://, Web Store, etc.) - skip.
+    // Popup + shortcut still stop the take.
   }
 }
 
-function removeBubbles() {
-  for (const tabId of bubbleTabIds) {
-    chrome.tabs.sendMessage(tabId, { type: "zinra-remove-bubble" }).catch(() => {});
-  }
-  bubbleTabIds.clear();
+function closeStopPanel() {
+  const id = stopPanelWindowId;
+  stopPanelWindowId = null;
+  if (id) chrome.windows.remove(id).catch(() => {});
 }
 
 function forwardPointer(msg) {
@@ -95,7 +107,6 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 chrome.tabs.onRemoved.addListener((id) => {
-  bubbleTabIds.delete(id);
   if (id === armedScreenTabId) armedScreenTabId = null;
   if (id === recorderTabId) {
     disarmTab(recordingTabId);
@@ -107,14 +118,18 @@ chrome.tabs.onRemoved.addListener((id) => {
     recordingLive = false;
     screenTrackClicks = false;
     armedScreenTabId = null;
+    closeStopPanel();
     chrome.action.setBadgeText({ text: "" });
   }
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   if (!recordingLive) return;
-  injectBubble(tabId);
   retargetScreenTracking(tabId);
+});
+
+chrome.windows.onRemoved.addListener((id) => {
+  if (id === stopPanelWindowId) stopPanelWindowId = null;
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -130,11 +145,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "save-settings") {
-    chrome.storage.sync.set(migrateSettings(msg.settings)).then(() => sendResponse({ ok: true }));
+    chrome.storage.sync.get(null).then((stored) => {
+      return chrome.storage.sync.set(migrateSettings({ ...stored, ...msg.settings }));
+    }).then(() => sendResponse({ ok: true }));
     return true;
   }
 
   if (msg.type === "start") {
+    if (msg.mode === "screen") {
+      beginScreenCapture(msg.tab, msg.tabId);
+      sendResponse({ ok: true });
+      return false;
+    }
     startRecording(msg.tabId, msg.mode).then(() => sendResponse({ ok: true })).catch((err) => {
       sendResponse({ ok: false, error: err.message });
     });
@@ -144,6 +166,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "stop") {
     stopRecording();
     sendResponse({ ok: true });
+    return false;
+  }
+
+  if (msg.type === "prepare-desktop") {
+    const streamId = pendingDesktopId;
+    pendingDesktopId = null;
+    if (pendingDesktopTimer) {
+      clearTimeout(pendingDesktopTimer);
+      pendingDesktopTimer = 0;
+    }
+    if (!streamId) {
+      sendResponse({ ok: false, error: "No screen was picked." });
+      return false;
+    }
+    sendResponse({ ok: true, streamId });
     return false;
   }
 
@@ -173,8 +210,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     if (returnTabId) {
       chrome.tabs.update(returnTabId, { active: true }).catch(() => {});
-      injectBubble(returnTabId);
     }
+    // Entire-screen shares would film this window, so skip it there —
+    // Chrome's own sharing bar can stop those. Tab/window captures stay
+    // clean because the control lives outside the recorded page.
+    const entireScreen = msg.mode === "screen" && !msg.trackClicks;
+    if (!entireScreen) openStopPanel(returnTabId);
     sendResponse({ ok: true });
     return false;
   }
@@ -188,7 +229,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     recordingLive = false;
     screenTrackClicks = false;
     armedScreenTabId = null;
-    removeBubbles();
+    closeStopPanel();
     sendResponse({ ok: true });
     return false;
   }
@@ -208,7 +249,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return false;
 });
 
-async function startRecording(tabId, mode) {
+async function startRecording(tabId, mode, options = {}) {
   if (recorderTabId) {
     try {
       await chrome.tabs.update(recorderTabId, { active: true });
@@ -240,14 +281,59 @@ async function startRecording(tabId, mode) {
     url: chrome.runtime.getURL(`recorder.html?tab=${tabId}&mode=${isScreen ? "screen" : "tab"}`),
     windowId: source.windowId,
     index: (source.index ?? 0) + 1,
-    active: true
+    // After a desktop picker, stay on the page the user was filming. The
+    // recorder tab still has to exist (that's where MediaRecorder lives) but
+    // it should not steal the window.
+    active: options.active !== false
   });
   recorderTabId = rec.id;
+}
+
+function rememberDesktopId(streamId) {
+  pendingDesktopId = streamId;
+  if (pendingDesktopTimer) clearTimeout(pendingDesktopTimer);
+  pendingDesktopTimer = setTimeout(() => {
+    pendingDesktopId = null;
+    pendingDesktopTimer = 0;
+  }, 20000);
+}
+
+function beginScreenCapture(tab, tabId) {
+  const originId = tab?.id || tabId;
+  const openFallback = () => {
+    if (originId) startRecording(originId, "screen", { active: true }).catch(() => {});
+  };
+  if (!originId || !chrome.desktopCapture?.chooseDesktopMedia) {
+    openFallback();
+    return;
+  }
+  // Called in the same turn as the popup click message so Chrome still
+  // treats it as a user gesture. The picker sits on the current window —
+  // not on a Zinra tab — then the recorder opens in the background.
+  const sources = ["screen", "window", "tab", "audio"];
+  const onPicked = (streamId) => {
+    if (!streamId) return;
+    rememberDesktopId(streamId);
+    startRecording(originId, "screen", { active: false }).catch(openFallback);
+  };
+  try {
+    if (tab?.id) chrome.desktopCapture.chooseDesktopMedia(sources, tab, onPicked);
+    else chrome.desktopCapture.chooseDesktopMedia(sources, onPicked);
+  } catch {
+    try {
+      chrome.desktopCapture.chooseDesktopMedia(["screen", "window", "tab"], onPicked);
+    } catch {
+      openFallback();
+    }
+  }
 }
 
 function stopRecording() {
   disarmTab(recordingTabId);
   chrome.runtime.sendMessage({ type: "recorder-stop" }).catch(() => {});
+  if (recorderTabId) {
+    chrome.tabs.sendMessage(recorderTabId, { type: "recorder-stop" }).catch(() => {});
+  }
 }
 
 async function prepareCapture(targetTabId, consumerTabId) {

@@ -11,6 +11,8 @@ import {
 import { DEFAULTS, migrateSettings } from "./settings.js";
 
 const livePreview = document.getElementById("livePreview");
+const camHud = document.getElementById("camHud");
+const camLive = document.getElementById("camLive");
 const hint = document.getElementById("previewHint");
 const timerEl = document.getElementById("timer");
 const errorEl = document.getElementById("error");
@@ -24,10 +26,13 @@ const targetTabId = Number(params.get("tab"));
 const captureMode = params.get("mode") === "screen" ? "screen" : "tab";
 
 let mediaStream = null;
+let webcamStream = null;
 let recorder = null;
 let audioRecorder = null;
+let webcamRecorder = null;
 let chunks = [];
 let audioChunks = [];
+let webcamChunks = [];
 let samples = [];
 let clicks = [];
 let focuses = [];
@@ -137,12 +142,75 @@ async function getDisplayStream() {
   // straight to the neutral Screen/Window/Tab choice instead.
   try {
     return await navigator.mediaDevices.getDisplayMedia({
-      video: { ...video, resizeMode: "none" },
+      video: { ...video, resizeMode: "crop-and-scale" },
       audio
     });
   } catch {
     return navigator.mediaDevices.getDisplayMedia({ video, audio: true });
   }
+}
+
+async function tightenDisplayTrack(track) {
+  if (!track?.applyConstraints) return;
+  const surface = track.getSettings?.().displaySurface;
+  // Window and tab shares on Windows often arrive as a larger GPU texture
+  // than the real pixels, with uninitialized (blinking green) rows at the
+  // edges. crop-and-scale asks Chrome to deliver only the content box.
+  // Entire-screen ("monitor") captures already fill the texture, so leave them.
+  if (surface !== "window" && surface !== "browser") return;
+  try {
+    await track.applyConstraints({ resizeMode: "crop-and-scale" });
+  } catch {
+    // Older Chrome rejects resizeMode after the picker.
+  }
+}
+
+async function getDesktopStream(streamId, includeAudio) {
+  const video = {
+    mandatory: {
+      chromeMediaSource: "desktop",
+      chromeMediaSourceId: streamId
+    }
+  };
+  const audio = {
+    mandatory: {
+      chromeMediaSource: "desktop",
+      chromeMediaSourceId: streamId
+    }
+  };
+  if (includeAudio) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video, audio });
+    } catch {
+      return navigator.mediaDevices.getUserMedia({ video });
+    }
+  }
+  return navigator.mediaDevices.getUserMedia({ video });
+}
+
+async function getWebcamStream() {
+  try {
+    return await withTimeout(
+      navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 720 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 }
+        },
+        audio: false
+      }),
+      8000,
+      "Camera timed out."
+    );
+  } catch {
+    return null;
+  }
+}
+
+function hideCamHud() {
+  camHud?.classList.add("hidden");
+  if (camLive) camLive.srcObject = null;
 }
 
 async function begin(stream, settings) {
@@ -162,22 +230,39 @@ async function begin(stream, settings) {
 
   chunks = [];
   audioChunks = [];
+  webcamChunks = [];
   samples = [];
   clicks = [];
   focuses = [];
   scrolls = [];
+
+  webcamRecorder = null;
+  hideCamHud();
+  if (settings.includeCamera) {
+    webcamStream = await getWebcamStream();
+    if (webcamStream) {
+      if (camLive) camLive.srcObject = webcamStream;
+      camHud?.classList.remove("hidden");
+    } else {
+      hint.textContent = "Recording without camera — Chrome didn't allow the webcam. This window only needs to stay open.";
+    }
+  }
+
   applyDetailHint(stream);
   await preferHighFps(videoTrack);
+  await tightenDisplayTrack(videoTrack);
 
   const hasAudio = stream.getAudioTracks().length > 0;
   const captureMime = pickMime(hasAudio);
   const size = trackSize(stream);
   const fps = size.frameRate || (supportsHwMp4() ? 60 : 30);
+  const displaySurface = videoTrack.getSettings?.().displaySurface || "";
   captureCache = {
     width: size.width,
     height: size.height,
     frameRate: fps,
-    mimeType: captureMime
+    mimeType: captureMime,
+    displaySurface
   };
   recorder = createRecorder(stream, captureMime, size.width, size.height, fps);
   recorder.ondataavailable = (event) => {
@@ -189,8 +274,9 @@ async function begin(stream, settings) {
 
   let videoDone = false;
   let audioDone = true;
+  let camDone = true;
   const finish = () => {
-    if (videoDone && audioDone) openEdit();
+    if (videoDone && audioDone && camDone) openEdit();
   };
   recorder.onstop = () => {
     videoDone = true;
@@ -227,6 +313,32 @@ async function begin(stream, settings) {
     }
   }
 
+  if (webcamStream) {
+    try {
+      const camMime = pickMime(false);
+      webcamRecorder = new MediaRecorder(webcamStream, {
+        mimeType: camMime,
+        videoBitsPerSecond: 2_500_000
+      });
+      camDone = false;
+      webcamRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size) webcamChunks.push(event.data);
+      };
+      webcamRecorder.onstop = () => {
+        camDone = true;
+        finish();
+      };
+      webcamRecorder.onerror = () => {
+        camDone = true;
+        finish();
+      };
+      webcamRecorder.start(1000);
+    } catch {
+      webcamRecorder = null;
+      camDone = true;
+    }
+  }
+
   recOrigin = performance.now();
   recOriginWall = Date.now();
   recording = true;
@@ -249,7 +361,6 @@ async function begin(stream, settings) {
   // frame. "browser" (a tab) or "window" at least means Chrome itself is
   // what's being shown, so tracking clicks on whichever tab has focus is a
   // reasonable best-effort guess, even without knowing the exact source.
-  const displaySurface = videoTrack.getSettings?.().displaySurface;
   const trackClicks = captureMode === "screen" && displaySurface !== "monitor";
   chrome.runtime.sendMessage({ type: "recording-started", mode: captureMode, trackClicks }).catch(() => {});
 }
@@ -262,9 +373,15 @@ function openEdit() {
   const audioBlob = audioChunks.length
     ? new Blob(audioChunks, { type: audioRecorder?.mimeType || "audio/webm" })
     : null;
+  const webcamBlob = webcamChunks.length
+    ? new Blob(webcamChunks, { type: webcamRecorder?.mimeType || "video/webm" })
+    : null;
   mediaStream?.getTracks().forEach((track) => track.stop());
   mediaStream = null;
+  webcamStream?.getTracks().forEach((track) => track.stop());
+  webcamStream = null;
   livePreview.srcObject = null;
+  hideCamHud();
   chrome.runtime.sendMessage({ type: "recording-stopped" }).catch(() => {});
 
   if (!blob.size) {
@@ -277,6 +394,7 @@ function openEdit() {
     openEditor({
       blob,
       audioBlob,
+      webcamBlob,
       samples,
       clicks,
       focuses,
@@ -302,6 +420,9 @@ async function stop() {
       if (audioRecorder && audioRecorder.state === "recording") {
         try { audioRecorder.requestData(); audioRecorder.stop(); } catch { /* ignore */ }
       }
+      if (webcamRecorder && webcamRecorder.state === "recording") {
+        try { webcamRecorder.requestData(); webcamRecorder.stop(); } catch { /* ignore */ }
+      }
       recorder.stop();
     } catch (err) {
       showError(err.message || "Could not stop recording.");
@@ -316,7 +437,10 @@ function cleanupLive() {
   window.clearInterval(timerId);
   mediaStream?.getTracks().forEach((track) => track.stop());
   mediaStream = null;
+  webcamStream?.getTracks().forEach((track) => track.stop());
+  webcamStream = null;
   livePreview.srcObject = null;
+  hideCamHud();
   setStatus("idle");
   chrome.runtime.sendMessage({ type: "recording-stopped" }).catch(() => {});
 }
@@ -423,6 +547,19 @@ window.addEventListener("beforeunload", () => {
 
 (async function start() {
   if (captureMode === "screen") {
+    try {
+      const prep = await chrome.runtime.sendMessage({ type: "prepare-desktop" });
+      if (prep?.ok && prep.streamId) {
+        const settings = await getSettings();
+        const stream = await getDesktopStream(prep.streamId, settings.includeAudio);
+        await begin(stream, settings);
+        return;
+      }
+    } catch (err) {
+      showScreenModeStart();
+      showError(err.message || "Could not use that share. Click Share your screen to pick again.");
+      return;
+    }
     showScreenModeStart();
     return;
   }

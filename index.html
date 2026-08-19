@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zinra — Chrome screen recorder with auto zoom</title>
-<meta name="description" content="Record the Chrome tab you are on. Zinra punches in on every click, opens a real timeline, and exports an offline MP4. Free 1080p. Nothing uploads.">
+<meta name="description" content="Record a Chrome tab, window, or screen. Zinra punches in on clicks when it can follow them, opens a real timeline, and exports an offline MP4. Free 1080p. Nothing uploads.">
 <meta name="theme-color" content="#1a1916">
 <link rel="canonical" href="https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/">
 <link rel="icon" href="icons/icon32.png" type="image/png">
@@ -813,6 +813,7 @@
     </a>
     <div class="nav-links">
       <a href="#how">How it works</a>
+      <a href="#howto">How to use</a>
       <a href="#features">Features</a>
       <a href="#editor">Editor</a>
       <a href="#pricing">Pricing</a>
@@ -833,7 +834,7 @@
     <div class="hero-copy">
       <p class="eyebrow">Chrome extension · Screen recorder</p>
       <h1>Record a page.<br>Render the zoom.</h1>
-      <p class="hero-lede">Zinra records the tab you’re already on, punches in on every click, and hands you a real timeline — zoom, speed, cuts, voiceover, crop, backgrounds — then encodes one MP4 on your machine. Nothing streams. Nothing uploads.</p>
+      <p class="hero-lede">Zinra records the Chrome tab you’re already on, or a window / screen you pick. It punches in on clicks when it can follow them, then hands you a real timeline — zoom, speed, cuts, voiceover, camera bubble, crop, backgrounds — and encodes one MP4 on your machine. Nothing streams. Nothing uploads.</p>
       <div class="hero-actions">
         <a class="btn primary js-cta" href="#install">Get Zinra — it’s free</a>
         <a class="btn ghost" href="#editor">See the editor</a>
@@ -886,8 +887,8 @@
 
   <div class="wrap">
     <div class="trust">
-      <div class="trust-item"><strong>Stays on the tab</strong><span>Records the page you’re already on.</span></div>
-      <div class="trust-item"><strong>Auto punch-in</strong><span>Every click gets a 1.50× zoom.</span></div>
+      <div class="trust-item"><strong>Two ways to record</strong><span>This page, or a window / screen you share.</span></div>
+      <div class="trust-item"><strong>Auto punch-in</strong><span>1.50× zoom on clicks — when Zinra can see them.</span></div>
       <div class="trust-item"><strong>Offline MP4</strong><span>Encoded locally. Never re-played to re-record.</span></div>
       <div class="trust-item"><strong>No account</strong><span>No cloud, no watermark, nothing to sign up for.</span></div>
     </div>
@@ -902,12 +903,12 @@
       <div class="reel-item">
         <span class="reel-time">00:00</span>
         <h3>Hit record</h3>
-        <p>Start the tab you’re already on. Zinra stays out of the way while you work — no borders, no toolbar to explain to whoever’s watching the take. Shortcut: Alt+Shift+R.</p>
+        <p><strong>Record this page</strong> captures the tab you started from and follows every click. <strong>Record my screen</strong> opens Chrome’s picker so you can share a tab, a window, or the entire screen. Shortcut: Alt+Shift+R.</p>
       </div>
       <div class="reel-item">
         <span class="reel-time">00:08</span>
         <h3>It punches in for you</h3>
-        <p>Every click gets a zoom, sized and timed automatically at a standard 1.50×. Typing gets one too. Nearby clicks become one clip. You never touch a keyframe by hand.</p>
+        <p>When click-tracking is on, every left-click gets a zoom at a standard 1.50×. Typing in a field gets one too. Nearby clicks become one clip. Entire-screen shares skip auto zoom — there is no single page to follow.</p>
       </div>
       <div class="reel-item">
         <span class="reel-time">00:24</span>
@@ -919,6 +920,45 @@
         <h3>Export, offline</h3>
         <p>Zinra seeks through the take frame by frame and encodes an MP4 locally with WebCodecs. It never re-plays the clip in real time to re-record it, and it never leaves your machine.</p>
       </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="howto">
+    <div class="section-head">
+      <p class="eyebrow">How to use</p>
+      <h2>What to pick, and when the zoom actually runs.</h2>
+      <p class="lede">Auto zoom is not a guess at “something happened on screen.” It follows pointer events on a real Chrome page. If Zinra cannot see those events, you still get the recording — you just place zooms yourself on the timeline.</p>
+    </div>
+    <div class="use-grid">
+      <article class="use-card">
+        <h3>Record this page</h3>
+        <p>Best default. Captures the tab you were on, injects the click helper there, and auto-zooms. Use this for product demos, tutorials, and bug reports on a webpage.</p>
+      </article>
+      <article class="use-card">
+        <h3>Share a Chrome tab or window</h3>
+        <p>From <strong>Record my screen</strong>, pick a tab or a window. Clicks still get tracked on whichever Chrome tab is focused — best effort, because Chrome never names the exact source you picked.</p>
+      </article>
+      <article class="use-card">
+        <h3>Share the entire screen</h3>
+        <p>Use this when you need a whole monitor. Auto zoom does <em>not</em> run: a click’s position on a page has no reliable spot in a desktop-sized frame. Add Zoom clips by hand after you stop.</p>
+      </article>
+      <article class="use-card">
+        <h3>Include camera</h3>
+        <p>Optional. Check it in the popup before you record. Chrome asks for the webcam on the recorder tab. After Stop &amp; edit, drag the circle on the preview — it is saved into the MP4.</p>
+      </article>
+    </div>
+    <div class="privacy-band" style="margin-top:28px;">
+      <div class="section-head" style="margin-bottom:0;">
+        <p class="eyebrow">Auto zoom</p>
+        <h2>The rules, in plain language.</h2>
+      </div>
+      <ul class="privacy-list">
+        <li><strong>On by default</strong> — the popup checkbox “Mark a zoom on each click” must stay on. Turn it off and Zinra records without placing clips.</li>
+        <li><strong>Left clicks only</strong> — a zoom starts where you click, at <strong>1.50×</strong> standard depth (change depth in the popup or per clip).</li>
+        <li><strong>Nearby clicks merge</strong> — clicks within about 1.25 seconds and close together on the page become one clip, so the camera does not stutter. Far-apart clicks each get their own clip, packed so bars do not overlap.</li>
+        <li><strong>Typing counts</strong> — keying into a field adds a zoom framed around that field. Those clips stay fixed on the field instead of following the mouse.</li>
+        <li><strong>You can rebuild or ignore it</strong> — drag clip edges, change depth, split at the playhead, or hit Rebuild auto zooms. The Zoom track is the source of truth, not the original clicks.</li>
+      </ul>
     </div>
   </section>
 
@@ -1116,7 +1156,7 @@
             <td>Auto punch-in</td>
             <td>Rarely</td>
             <td>Yes</td>
-            <td>Yes — on every click</td>
+            <td>Yes — on clicks it can see</td>
           </tr>
           <tr>
             <td>Timeline</td>
@@ -1139,7 +1179,7 @@
         </tbody>
       </table>
     </div>
-    <p class="compare-note">Zinra records a Chrome tab, not your whole desktop or a meeting gallery. If you need those, use something else.</p>
+    <p class="compare-note">Zinra is a page recorder first. Record this page always punch-in zooms. Record my screen can share a tab, a window, or a monitor — auto zoom follows clicks on a focused Chrome tab or window, not on an entire desktop.</p>
   </section>
 
   <section class="section wrap" id="pricing">
@@ -1173,10 +1213,10 @@
           <li>Wave &amp; Spark click effects</li>
           <li>More export presets, coming up</li>
         </ul>
-        <a class="btn primary js-cta" href="#install">Start on Free</a>
+        <a class="btn primary" href="https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15" target="_blank" rel="noopener">Get Zinra Pro</a>
       </div>
     </div>
-    <p class="pricing-fine">The 2-export limit and Pro lock are live in the extension today. Checkout isn't wired up yet, so Pro currently unlocks by license key after purchase — there is no card form inside the extension itself.</p>
+    <p class="pricing-fine">Free is 2 exports. Pro is a Lemon Squeezy checkout — they email a license key, you paste it in the extension. There is no card form inside Zinra.</p>
   </section>
 
   <section class="section wrap" id="faq">
@@ -1191,7 +1231,11 @@
       </details>
       <details>
         <summary>Does it record my whole screen?</summary>
-        <p>No. Zinra records the Chrome tab you start from — the page you’re already on. That is why punch-in can follow clicks on that page. It is not a desktop or meeting recorder.</p>
+        <p>It can. <strong>Record this page</strong> is tab-only and always follows clicks. <strong>Record my screen</strong> opens Chrome’s picker: a tab, a window, or the entire screen. Entire-screen takes do not auto-zoom. See <a href="#howto">How to use</a>.</p>
+      </details>
+      <details>
+        <summary>When does automatic zoom work?</summary>
+        <p>When Zinra can sample the pointer on a Chrome page: Record this page (always), or Record my screen if you shared a tab or a window and keep working in a Chrome tab. It does not run on a full-monitor share, if you turned off “Mark a zoom on each click,” or on clicks outside Chrome. Left-clicks and typing in a field create clips at 1.50×; nearby clicks merge into one.</p>
       </details>
       <details>
         <summary>Will it work on the Chrome Web Store?</summary>
@@ -1224,7 +1268,7 @@
         <li>Clone or download the repository</li>
         <li>Open <code>chrome://extensions</code>, turn on Developer mode</li>
         <li>Click <strong>Load unpacked</strong> and pick the folder</li>
-        <li>Open a page → Zinra → <strong>Record this page</strong></li>
+        <li>Open a page → Zinra → <strong>Record this page</strong> (or <strong>Record my screen</strong> to pick a tab, window, or monitor)</li>
       </ol>
       <ol class="install-steps store-only">
         <li>Click <strong>Add to Chrome</strong> on the Web Store listing</li>
@@ -1247,6 +1291,7 @@
       <div class="footer-links">
         <a href="https://github.com/jafetmora79-lab/Zinra-Screen-Recorder" target="_blank" rel="noopener">GitHub</a>
         <a href="privacy.html">Privacy</a>
+        <a href="#howto">How to use</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
       </div>

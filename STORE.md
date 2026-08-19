@@ -41,7 +41,8 @@ Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then pa
 - **`host_permissions: <all_urls>` + `scripting`** — Zinra records whatever page the user is currently on, which could be any site, so the pointer-tracking helper (`content.js`) has to be injectable on any host. It's only injected into the one tab a user explicitly starts recording, and only for the duration of that recording.
 - **`tabs` / `activeTab`** — find the active tab to record and bring the editor tab forward.
 - **`storage`** — remember zoom/quality/audio preferences locally (`chrome.storage.sync`), nothing is uploaded.
-- **`downloads`** — save the exported MP4 where the user picks.
+- **`desktopCapture`** — opens Chrome’s screen/window/tab picker from the popup so Record my screen does not need a second Zinra tab just to pick a source. The recording still stays on the machine.
+- Camera access uses the normal browser `getUserMedia` prompt, only when the user turns on **Include camera**. Nothing is uploaded.
 
 ## Store checklist
 
@@ -71,7 +72,7 @@ Record and edit are unlimited on Free. Exporting is the gate.
 **Status: `ENFORCE_PRO` is now `true`** — the gates are live in code (`settings.js`: `FREE_EXPORT_LIMIT`, `canExport`, `isProLocked`). What's still missing before this can actually make money:
 
 1. **A real Lemon Squeezy product.** Create a Zinra product at lemonsqueezy.com with two variants (Monthly $7, Yearly $49), turn on **license keys** for it (Product → License Keys). The extension's paywall (`editor.js` → `activateLicense`) already calls Lemon Squeezy's public License API (`/v1/licenses/activate`) — no code change needed once the product exists, any key it issues will just work.
-2. **A checkout link.** Put the product's Lemon Squeezy checkout URL into `paywallBuyBtn`'s `href` in `recorder.html` (currently points at the landing page's pricing section as a placeholder) so “Get Zinra Pro” actually leads to a place to pay.
+2. **A checkout link.** The live buy URL is in `paywallBuyBtn` in `recorder.html`: `https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15`
 3. **Delivering the key after purchase.** Lemon Squeezy emails the license key automatically on purchase — the buyer pastes it into the paywall's “License key” field, which activates it and sets `pro: true` in `chrome.storage.sync`. No extra delivery mechanism needed.
 
 Do not put a credit-card form inside the extension itself — Lemon Squeezy's hosted checkout handles payment entirely outside the extension.

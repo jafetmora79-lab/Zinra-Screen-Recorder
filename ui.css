@@ -76,6 +76,13 @@ body:has(#editView:not(.hidden)) {
   margin-bottom: 16px;
 }
 
+.popup-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -349,6 +356,28 @@ body.is-live .preview-wrap {
   box-shadow: inset 0 0 0 1px rgba(196, 92, 74, 0.3);
 }
 
+.cam-hud {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 3;
+  border: 2px solid var(--accent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(224, 180, 74, 0.25);
+  pointer-events: none;
+}
+
+.cam-hud video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  background: #111;
+}
+
 .hidden-video {
   position: absolute;
   width: 1px;
@@ -401,7 +430,7 @@ body.is-live .preview-wrap {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.quality-field, #exportBtn { flex-shrink: 0; }
+.quality-field, #exportBtn, #getProBtn, #proChip { flex-shrink: 0; }
 
 .editor-side {
   border-right: 1px solid var(--line);
@@ -616,6 +645,7 @@ body.is-live .preview-wrap {
   margin: -4px 0 12px;
   color: var(--accent);
   font-size: 11px;
+  cursor: pointer;
 }
 
 .cursor-picker {
@@ -1124,6 +1154,8 @@ body.is-live .timer { color: var(--danger); }
   align-items: center;
   justify-content: center;
   gap: 8px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .btn:disabled { opacity: 0.45; cursor: default; }
@@ -1143,6 +1175,19 @@ body.is-live .timer { color: var(--danger); }
   border: 1px solid var(--line-strong);
 }
 .btn.ghost:hover:not(:disabled) { background: var(--bg-3); }
+.btn.pro-cta {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(224, 180, 74, 0.4);
+  padding: 7px 11px;
+}
+.btn.pro-cta:hover:not(:disabled) { filter: brightness(1.08); }
+.hud-chip.pro-chip {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: rgba(224, 180, 74, 0.4);
+}
+.hud-chip.pro-chip::before { background: var(--accent); box-shadow: none; }
 
 .play-btn {
   min-width: 96px;
@@ -1226,7 +1271,7 @@ body.is-live .timer { color: var(--danger); }
   color: var(--muted);
   letter-spacing: 0.02em;
   white-space: nowrap;
-  cursor: help;
+  cursor: pointer;
   border-bottom: 1px dashed var(--line-strong);
 }
 

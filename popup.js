@@ -1,10 +1,11 @@
-import { DEFAULTS, migrateSettings } from "./settings.js";
+import { DEFAULTS, migrateSettings, remainingFreeExports } from "./settings.js";
 
 const fields = {
   autoMarkClicks: document.getElementById("autoMarkClicks"),
   clickZoom: document.getElementById("clickZoom"),
   zoomDuration: document.getElementById("zoomDuration"),
   includeAudio: document.getElementById("includeAudio"),
+  includeCamera: document.getElementById("includeCamera"),
   quality: document.getElementById("quality")
 };
 
@@ -21,13 +22,14 @@ function showError(message) {
 }
 
 function readSettings() {
-  return migrateSettings({
+  return {
     autoMarkClicks: fields.autoMarkClicks.checked,
     clickZoom: Number(fields.clickZoom.value),
     zoomDuration: Number(fields.zoomDuration.value),
     includeAudio: fields.includeAudio.checked,
+    includeCamera: fields.includeCamera.checked,
     quality: fields.quality.value
-  });
+  };
 }
 
 function applySettings(settings) {
@@ -36,15 +38,37 @@ function applySettings(settings) {
   fields.clickZoom.value = next.clickZoom ?? DEFAULTS.clickZoom;
   fields.zoomDuration.value = next.zoomDuration ?? DEFAULTS.zoomDuration;
   fields.includeAudio.checked = next.includeAudio !== false;
+  fields.includeCamera.checked = Boolean(next.includeCamera);
   fields.quality.value = next.quality || DEFAULTS.quality;
   clickZoomVal.textContent = `${Number(fields.clickZoom.value).toFixed(2)}×`;
   zoomDurationVal.textContent = `${Number(fields.zoomDuration.value).toFixed(1)}s`;
+  refreshProChrome(next);
+}
+
+function refreshProChrome(settings) {
+  const getPro = document.getElementById("getProBtn");
+  const chip = document.getElementById("proChip");
+  const note = document.getElementById("proNote");
+  const pro = Boolean(settings?.pro);
+  getPro?.classList.toggle("hidden", pro);
+  chip?.classList.toggle("hidden", !pro);
+  if (!note) return;
+  if (pro) {
+    note.textContent = "Pro is active — unlimited exports, 4K, and extra click effects.";
+    return;
+  }
+  const left = remainingFreeExports(settings);
+  note.textContent = left > 0
+    ? `${left} free export${left === 1 ? "" : "s"} left. 4K, 60fps, and extra click effects are Pro.`
+    : "Free exports used. Get Pro for unlimited exports, 4K, and extra click effects.";
 }
 
 function setRecordUi(recording) {
   const icon = recordBtn.querySelector(".ui-icon");
   const label = recordBtn.querySelector(".btn-label");
   recordScreenBtn.classList.toggle("hidden", recording);
+  const stopHint = document.getElementById("stopHint");
+  if (stopHint) stopHint.classList.toggle("hidden", !recording);
   if (recording) {
     if (icon) icon.src = "icons/svg/stop.svg";
     if (label) label.textContent = "Stop recording";
@@ -76,6 +100,8 @@ function wire() {
   }
 }
 
+let originTab = null;
+
 recordBtn.addEventListener("click", async () => {
   showError("");
   await persist();
@@ -102,21 +128,34 @@ recordBtn.addEventListener("click", async () => {
   window.close();
 });
 
-recordScreenBtn.addEventListener("click", async () => {
+recordScreenBtn.addEventListener("click", () => {
   showError("");
-  await persist();
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const result = await chrome.runtime.sendMessage({ type: "start", tabId: tab?.id, mode: "screen" });
-  if (!result?.ok) {
-    showError(result?.error || "Could not start recording.");
-    return;
-  }
-  window.close();
+  persist();
+  const tab = originTab;
+  chrome.runtime.sendMessage(
+    { type: "start", tabId: tab?.id, tab, mode: "screen" },
+    (result) => {
+      if (chrome.runtime.lastError) {
+        showError(chrome.runtime.lastError.message);
+        return;
+      }
+      if (result && result.ok === false) {
+        showError(result.error || "Could not start recording.");
+        return;
+      }
+      window.close();
+    }
+  );
 });
 
 (async function init() {
   wire();
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  originTab = tab || null;
   const state = await chrome.runtime.sendMessage({ type: "get-state" });
   applySettings(state.settings);
   setRecordUi(state.recording);
+  document.getElementById("getProBtn")?.addEventListener("click", () => {
+    chrome.tabs.create({ url: "https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15" });
+  });
 })();

@@ -25,6 +25,9 @@
     <div class="preview-wrap">
       <div class="viewport-corners" aria-hidden="true"></div>
       <video id="livePreview" autoplay muted playsinline></video>
+      <div id="camHud" class="cam-hud hidden">
+        <video id="camLive" autoplay muted playsinline></video>
+      </div>
       <p id="previewHint" class="hint">Starting tab capture…</p>
     </div>
 
@@ -73,6 +76,8 @@
           </select>
         </label>
         <span id="exportCreditsNote" class="export-credits hidden"></span>
+        <button id="getProBtn" class="btn pro-cta" type="button">Get Pro</button>
+        <span id="proChip" class="hud-chip pro-chip hidden">Pro</span>
         <button id="exportBtn" class="btn primary" type="button">
           <img class="ui-icon" src="icons/svg/export.svg" alt="" />
           <span class="btn-label">Export</span>
@@ -97,6 +102,10 @@
         <button id="tabAudio" class="tool-tab" type="button">
           <img class="ui-icon" src="icons/svg/mic.svg" alt="" />
           <span>Audio</span>
+        </button>
+        <button id="tabCamera" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/camera.svg" alt="" />
+          <span>Camera</span>
         </button>
         <button id="tabCursor" class="tool-tab" type="button">
           <img class="ui-icon" src="icons/svg/effects.svg" alt="" />
@@ -311,11 +320,31 @@
         </div>
       </div>
 
+      <div id="panelCamera" class="side-panel hidden">
+        <p class="panel-kicker">Bubble</p>
+        <p id="cameraEmpty" class="panel-copy">Turn on Include camera in the Zinra popup before you record. The webcam is saved with the take, then you can drag and resize this circle on the preview.</p>
+        <div id="cameraControls" class="hidden">
+          <label class="check">
+            <input id="cameraEnabled" type="checkbox" checked />
+            <span>Show camera</span>
+          </label>
+          <label class="check">
+            <input id="cameraMirror" type="checkbox" checked />
+            <span>Mirror</span>
+          </label>
+          <label class="field">
+            <span>Size <em id="cameraSizeVal">22%</em></span>
+            <input id="cameraSize" type="range" min="0.08" max="0.55" step="0.01" value="0.22" />
+          </label>
+          <p class="panel-copy">Drag the circle on the preview to move it. Drag the saffron knob on the rim to resize.</p>
+        </div>
+      </div>
+
       <div id="panelCursor" class="side-panel hidden">
         <p class="panel-kicker">On click</p>
         <p class="panel-copy">Plays a short effect at the exact spot and moment of each recorded click.</p>
         <div id="clickEffectPicker" class="cursor-picker"></div>
-        <p id="clickEffectProNote" class="cursor-pro-note hidden">That effect is Pro. Pick None or Ripple, or unlock Pro.</p>
+        <p id="clickEffectProNote" class="cursor-pro-note hidden">That effect is Pro. Click to unlock.</p>
         <p class="panel-kicker">Camera</p>
         <label class="check">
           <input id="smoothMove" type="checkbox" checked />
@@ -340,7 +369,7 @@
             <option value="4:5">4:5 · Portrait</option>
           </select>
         </label>
-        <p class="panel-copy">Crops straight from the recording's full resolution, so nothing gets softer. Drag the preview to reposition the frame.</p>
+        <p class="panel-copy">Crops straight from the recording's full resolution, so nothing gets softer. Drag the preview to reposition the frame. Window and tab shares trim Chrome's extra texture edges automatically — Original is the real window, not the green padding.</p>
       </div>
 
       <div id="panelBackground" class="side-panel hidden">
@@ -409,6 +438,7 @@
         <div id="viewport" class="viewport">
           <div class="viewport-corners" aria-hidden="true"></div>
           <video id="sourceVideo" class="source-video" playsinline preload="auto"></video>
+          <video id="camVideo" class="source-video" playsinline muted preload="auto"></video>
           <canvas id="editCanvas"></canvas>
           <p id="loadStatus" class="hint">Loading recording…</p>
           <div class="viewport-actions">
@@ -486,9 +516,9 @@
     <div id="paywallOverlay" class="export-overlay hidden">
       <div class="export-modal paywall-modal">
         <button id="paywallCloseBtn" class="paywall-close" type="button" title="Close">×</button>
-        <p class="eyebrow">Free plan</p>
-        <h3 class="paywall-title">You've used both free exports</h3>
-        <p class="paywall-copy">Recording and editing stay free forever. Exporting more takes Zinra Pro.</p>
+        <p id="paywallKicker" class="eyebrow">Upgrade</p>
+        <h3 id="paywallTitle" class="paywall-title">Zinra Pro</h3>
+        <p id="paywallCopy" class="paywall-copy">Unlimited exports, 4K and 60fps, plus extra click effects. Checkout opens in the browser — paste the license key here.</p>
         <div class="paywall-plans">
           <div class="paywall-plan">
             <p class="paywall-plan-price">$7<span>/mo</span></p>
@@ -499,7 +529,7 @@
             <p class="paywall-plan-name">Yearly</p>
           </div>
         </div>
-        <a id="paywallBuyBtn" class="btn primary" href="https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/#pricing" target="_blank" rel="noopener">Get Zinra Pro</a>
+        <a id="paywallBuyBtn" class="btn primary" href="https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15" target="_blank" rel="noopener">Get Zinra Pro</a>
         <p class="paywall-divider">Already have a license?</p>
         <label class="field">
           <span>License key</span>

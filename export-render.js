@@ -384,6 +384,7 @@ export async function renderOfflineExport({
   background,
   clicks,
   clickEffectStyle,
+  webcam,
   onProgress
 }) {
   const width = even(outW || video.videoWidth);
@@ -446,16 +447,25 @@ export async function renderOfflineExport({
 
   let lastSource = -1;
   const keyEvery = Math.max(1, Math.round(fps * 2));
-  const drawOpts = { width, height, fast: true, crop, background, clickStyle: clickEffectStyle, clickColor: CLICK_EFFECT_COLOR };
+  const drawOpts = { width, height, fast: true, crop, background, clickStyle: clickEffectStyle, clickColor: CLICK_EFFECT_COLOR, webcam: webcam ? { ...webcam, fast: true, edit: false } : null };
   const seekSlack = 0.45 / Math.max(24, fps);
   const showClickEffects = clickEffectStyle && clickEffectStyle !== "none" && clicks && clicks.length;
+  const camVideo = webcam?.video || null;
 
   try {
+    if (camVideo) {
+      camVideo.pause();
+      camVideo.playbackRate = 1;
+      camVideo.muted = true;
+    }
     for (let i = 0; i < frames.length; i++) {
       if (encodeError) throw encodeError;
       const { sourceTime, outputTime } = frames[i];
       if (Math.abs(video.currentTime - sourceTime) > seekSlack || video.readyState < 2) {
         await seekTo(video, sourceTime);
+      }
+      if (camVideo && (Math.abs(camVideo.currentTime - sourceTime) > seekSlack || camVideo.readyState < 2)) {
+        await seekTo(camVideo, sourceTime);
       }
       if (sourceTime - lastSource > 1) resetCameraCache();
       lastSource = sourceTime;

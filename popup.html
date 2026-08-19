@@ -15,7 +15,11 @@
         <p class="eyebrow">Studio</p>
       </div>
     </div>
-    <span id="statusDot" class="hud-chip idle">Ready</span>
+    <div class="popup-head-actions">
+      <button id="getProBtn" class="btn pro-cta" type="button">Get Pro</button>
+      <span id="proChip" class="hud-chip pro-chip hidden">Pro</span>
+      <span id="statusDot" class="hud-chip idle">Ready</span>
+    </div>
   </header>
 
   <section class="card">
@@ -42,6 +46,14 @@
       <span class="check-copy">
         <img class="ui-icon" src="icons/svg/mic.svg" alt="" />
         Include tab audio
+      </span>
+    </label>
+
+    <label class="check">
+      <input id="includeCamera" type="checkbox" />
+      <span class="check-copy">
+        <img class="ui-icon" src="icons/svg/camera.svg" alt="" />
+        Include camera
       </span>
     </label>
 
@@ -76,9 +88,10 @@
     </button>
   </div>
 
-  <p class="fine">Record this page always follows your clicks with a zoom. Record my screen shares any screen, window, or tab — if you share a tab or a window, clicks on whichever tab you're using still get tracked; sharing your entire screen doesn't, since there's no single page to follow.</p>
-  <p class="fine">Alt+Shift+R starts or stops. Recording stays at the tab’s native size; quality only changes the exported file. Standard zoom is 1.50×.</p>
-  <p class="fine pro-note">Free includes 1080p. 4K and 60fps are marked Pro for when billing ships — they stay unlocked for now.</p>
+  <p class="fine">Record this page always follows your clicks with a zoom. Record my screen opens the picker on this window — pick a screen, window, or tab without switching to Zinra. Sharing a tab or window still tracks clicks; the entire screen does not.</p>
+  <p class="fine">Alt+Shift+R starts or stops. While you’re live, stop from this popup, the shortcut, or the Stop pill on the page. Quality only changes the exported file.</p>
+  <p id="stopHint" class="fine hidden">You’re recording. Stop from the small Stop window, this popup, Alt+Shift+R, or Chrome’s sharing bar. That control is not part of the page, so it does not show up in the take.</p>
+  <p id="proNote" class="fine pro-note">2 free exports included. 4K, 60fps, and extra click effects are Pro.</p>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

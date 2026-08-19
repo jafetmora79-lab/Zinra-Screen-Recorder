@@ -3,6 +3,7 @@ export const DEFAULTS = {
   zoomDuration: 2.2,
   autoMarkClicks: true,
   includeAudio: true,
+  includeCamera: false,
   quality: "1080p",
   clickEffect: "none",
   pro: false,
@@ -93,6 +94,7 @@ export function migrateSettings(stored = {}) {
   if (!BLUR_LEVELS[next.backgroundBlur]) next.backgroundBlur = DEFAULTS.backgroundBlur;
   const padding = Number(next.backgroundPadding);
   next.backgroundPadding = Number.isFinite(padding) ? Math.min(0.35, Math.max(0, padding)) : 0;
+  next.includeCamera = Boolean(next.includeCamera);
   next.pro = Boolean(next.pro);
   const count = Number(next.exportCount);
   next.exportCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;

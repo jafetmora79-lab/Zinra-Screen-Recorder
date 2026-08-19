@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zinra</title>
+  <style>
+    html, body {
+      margin: 0;
+      background: #1a1916;
+      color: #f3efe6;
+      font: 650 13px Inter, "Segoe UI", system-ui, sans-serif;
+      height: 100%;
+      overflow: hidden;
+    }
+    button {
+      appearance: none;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #1a1916;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 0 14px;
+    }
+    button:hover { background: #24221e; }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #c45c4a;
+      animation: pulse 1.4s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+    .icon {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      background: #f3efe6;
+      flex: 0 0 auto;
+    }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+  </style>
+</head>
+<body>
+  <button id="stopBtn" type="button">
+    <span class="dot"></span>
+    <span class="icon"></span>
+    Stop recording
+  </button>
+  <script src="stop-panel.js"></script>
+</body>
+</html>

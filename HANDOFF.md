@@ -1,6 +1,6 @@
 # Zinra — Handoff Doc
 
-Continuing this project in Cursor. Everything below reflects the state as of commit `e28d473` on `main`, pushed to `https://github.com/jafetmora79-lab/Zinra-Screen-Recorder`.
+Continuing this project in Cursor. Webcam picture-in-picture landed in the working tree after `e28d473` (manifest `1.9.4`, not committed unless you ask). Remote: `https://github.com/jafetmora79-lab/Zinra-Screen-Recorder`.
 
 ## What Zinra is
 
@@ -18,13 +18,18 @@ A Chrome extension (Manifest V3) screen recorder: captures a tab or the whole sc
 - **Tab mode**: auto-starts via `chrome.tabCapture.getMediaStreamId` on load, content script (`content.js`) armed immediately for click/pointer tracking.
 - **Screen mode**: cannot auto-start — `getDisplayMedia` requires a real user gesture in a durable page (the popup can't hold it; it closes on blur). `recorder.js` shows a "Share your screen" button (auto-focused so Enter/Space works) instead of attempting tab capture.
 - After the stream starts, `stream.getVideoTracks()[0].getSettings().displaySurface` tells you `"monitor"` / `"window"` / `"browser"` — **only `"monitor"` (entire screen) skips click-tracking**; window/tab shares get best-effort tracking on whichever tab currently has focus, re-targeted live via `chrome.tabs.onActivated` (see `retargetScreenTracking` in `background.js`). Chrome deliberately never tells the extension *which* window/tab was picked, so this is a heuristic, not a guarantee.
-- Once recording starts, focus returns to wherever the user was (`recordingTabId` or `screenOriginTabId`), and `stop-bubble.js` gets injected there (and re-injected on tab switches while `recordingLive`) — a small closed-shadow-DOM draggable pill, click to stop (routes to the same `stopRecording()` as the popup button / Alt+Shift+R).
+- Once recording starts, focus returns to wherever the user was (`recordingTabId` or `screenOriginTabId`). Stop is a **separate** tiny `stop-panel.html` popup window (not injected into the filmed page — an in-page pill was captured in the take and those clicks became zooms). Entire-screen shares skip that window so it is not filmed; use Chrome’s sharing bar, the extension popup, or Alt+Shift+R.
+- **Webcam (optional):** popup checkbox `includeCamera` (default off). `recorder.js` `getUserMedia({video, audio:false})` on the recorder page (not the service worker — no `videoCapture` manifest permission; Chrome prompts on the extension origin). Parallel `MediaRecorder` writes a `webcamBlob` passed into `openEditor`. `compositor.drawFrame` composites a circular HUD overlay in output-frame space (does not zoom with punch-in). Editor Camera panel + drag/resize; `export-render.js` seeks the cam video in lockstep with the take.
 
 **Editing/export:** `editor.js` (huge, ~1700+ lines) drives the timeline UI; `compositor.js` has the pure `drawFrame`/`cameraAt`/spring-camera math shared by live preview and export; `export-render.js` does the actual offline WebCodecs render loop (seek → draw → `getImageData` → I420 → `VideoEncoder`); `camera-path.js` has the auto-zoom-clip detection (`autoZoomClips`, working off `reason: "click"|"type"` — **not** a 6-category taxonomy, despite what the playground's demo tiles might suggest); `settings.js` is the single source of truth for defaults/presets/migration.
 
 ## What happened this session (reverse chronological, most recent first)
 
-1. **Export bug fix** (`e28d473`) — `seekTo()` in `export-render.js` resolved on a blind 70ms timeout with no guarantee the video had actually decoded to that position. On a slow seek, `drawFrame()` would skip the video draw (since it gates on `video.readyState >= 2`) and encode just the background fill for that frame — a flash of whatever background color was last set (user reported green bars in an uploaded video; likely a leftover "Leaf" `#6a8f62` swatch from testing). Fixed: `seekTo` now polls up to ~300ms past the seek event for real ready state, and the main loop reuses the previous frame's pixels rather than redrawing blank if still not ready. **Not yet confirmed by the user against a fresh export** — that's the first thing to check.
+0. **Window/tab green-bar glitch** — `getDisplayMedia` used `resizeMode: "none"`, so Windows tab/window shares often recorded a larger GPU texture with blinking green padding on the top and bottom. Capture now asks for `crop-and-scale` on window/browser surfaces. The editor also samples a few frames and auto-crops leftover green (and black, on window/tab shares) letterbox. Reload before testing a new tab/window share.
+
+1. **Webcam PiP bubble** (working tree, manifest `1.9.4`) — optional Include camera in the popup; recorded as a second video blob; circular saffron-ring overlay in editor + export. Drag to move, rim knob / Size slider to resize, Mirror. Not started from live editor getUserMedia (that wouldn't match the take). Reload the unpacked extension before testing.
+
+1. **Export bug fix** (`e28d473`) — `seekTo()` in `export-render.js` resolved on a blind 70ms timeout with no guarantee the video had actually decoded to that position. On a slow seek, `drawFrame()` would skip the video draw (since it gates on `video.readyState >= 2`) and encode just the background fill for that frame — a flash of whatever background color was last set (user reported green bars in an uploaded video; likely a leftover "Leaf" `#6a8f62` swatch from testing). Fixed: `seekTo` now polls up to ~300ms past the seek event for real ready state, and the main loop reuses the previous frame's pixels rather than redrawing blank if still not ready. **Not yet confirmed by the user against a fresh export** — that's still worth checking.
 
 2. **Screen-picker + click-tracking fixes** (`1916ff1`, `13f78b0`) — `getDisplayStream()` had `preferCurrentTab: true`, which (since it's called from *inside* the recorder tab) biased Chrome's picker toward sharing Zinra's own blank editor page, forcing a decline-then-repick loop. Removed. Also added `displaySurface`-based click tracking for window/tab shares (see Architecture above) and focused the "Share your screen" button.
 
@@ -34,24 +39,25 @@ A Chrome extension (Manifest V3) screen recorder: captures a tab or the whole sc
 
 ## Known unconfirmed / needs-testing items (start here)
 
+- [ ] **Window/tab green bars** — Record my screen → pick a tab or a window (not Entire screen). Confirm the preview and export no longer have blinking green strips at the top/bottom. Reload the extension first.
+- [ ] **Webcam bubble (just added, 1.9.4)** — popup → Include camera → Record this page. Chrome should ask for the camera on the recorder tab. A circular live preview should sit on the recorder HUD. After Stop & edit: Camera panel, drag the circle, drag the saffron rim knob to resize, Mirror/Size, then Export and confirm the bubble is in the MP4. If you skip Include camera, the Camera panel should stay empty (no live getUserMedia in the editor — the take has to include the webcam).
 - [ ] **Export green-frame fix** — re-export a recording, confirm no more flash artifacts.
 - [ ] **Stop bubble** — confirm it actually renders (a small dark pill, bottom-right, draggable, "Stop recording") on the page you land on after starting a recording, not just Chrome's native sharing bar.
 - [ ] **Screen-mode click tracking** — record by sharing "This Tab" or a window (not Entire Screen), click around, confirm Zoom clips show up on the timeline afterward.
 - [ ] The click-testing/drag-testing of `stop-bubble.js` in this session was done via a mocked `chrome.runtime` in a plain HTML page — visual render and hit-testing position were confirmed correct, but the actual click-to-stop-message path could not be verified end-to-end (the browser automation tool used couldn't simulate a real pointer event landing inside the closed shadow DOM). Worth a manual click test.
 
-## Next task queued up (not started)
+## Next task queued up
 
-**Camera/webcam picture-in-picture bubble** — requested by the user after seeing Cursorful's "Select camera" option. Scope: `getUserMedia({video:true})` for a webcam stream, a draggable/resizable circular overlay in the live preview, composited into both the live canvas and `export-render.js`'s offline render loop. Touches `recorder.js`, `compositor.js`, `editor.js`, and probably a new panel in `recorder.html`/`ui.css`. Not started — no code written for this yet.
+Webcam PiP is implemented (see Architecture note below). Unconfirmed items above are the next thing to verify after a reload. Business checklist is still open. Do not resurrect the synthetic cursor overlay.
 
 ## Business / monetization checklist (unchanged from before this session, still open)
 
 See `STORE.md` for full detail. Summary:
 1. Chrome Web Store developer account — user was mid-registration (payment profile, identity verification) in an earlier session; confirm it's done.
-2. Create the Lemon Squeezy product (Monthly $7 / Yearly $49 variants), turn on License Keys — no code changes needed once it exists, `editor.js`'s `activateLicense` already calls the public License API.
-3. Paste the real checkout URL into `paywallBuyBtn`'s href in `recorder.html` (currently a placeholder pointing at the landing page's pricing anchor).
-4. Store listing assets (screenshots, description — already drafted, see earlier STORE.md), privacy URL (already live), support email.
-5. Bump `manifest.json` version, run `installer\build-store-package.bat`, submit.
-6. Once approved, paste the store URL into `STORE_URL` in `index.html`.
+2. Lemon Squeezy product **Zinra Pro** is published. Checkout URL is live on `paywallBuyBtn` in `recorder.html` and the marketing Pro CTA. License activation is already in `editor.js`.
+3. Store listing assets (screenshots, description — already drafted, see earlier STORE.md), privacy URL (already live), support email.
+4. Bump `manifest.json` version, run `installer\build-store-package.bat`, submit.
+5. Once approved, paste the store URL into `STORE_URL` in `index.html`.
 
 ## Design/brand reference
 

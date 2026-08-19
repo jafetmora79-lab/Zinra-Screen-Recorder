@@ -66,15 +66,17 @@
       Zinra
     </a>
     <h1>Privacy</h1>
-    <p class="meta">Last updated: 16 August 2026</p>
-    <p>Zinra records the Chrome tab you choose, then edits and exports that recording on your computer. It is built to work offline after capture.</p>
+    <p class="meta">Last updated: 18 August 2026</p>
+    <p>Zinra records a Chrome tab, a window, or a screen you choose, then edits and exports that recording on your computer. It is built to work offline after capture.</p>
 
     <h2>What Zinra accesses</h2>
     <ul>
-      <li><strong>Tab capture</strong> — only the tab you start recording, plus optional tab audio.</li>
-      <li><strong>Pointer position</strong> — sampled on that tab while a recording is armed, so zooms can follow clicks. Sampling stops when you stop.</li>
+      <li><strong>Tab capture</strong> — <em>Record this page</em> records only the tab you start from, plus optional tab audio.</li>
+      <li><strong>Screen / window / tab share</strong> — <em>Record my screen</em> uses Chrome’s picker. You choose a tab, a window, or the entire screen. Zinra does not learn which exact source you picked, only the type.</li>
+      <li><strong>Camera</strong> — only if you turn on Include camera before recording. The webcam is recorded on your computer and composited into the export. Chrome asks you to allow the camera the first time.</li>
+      <li><strong>Pointer position</strong> — sampled on a Chrome tab while a recording is armed, so zooms can follow clicks. That is always on for Record this page. For a shared tab or window it follows whichever Chrome tab has focus. Entire-screen shares do not sample the pointer. Sampling stops when you stop.</li>
       <li><strong>Downloads</strong> — to save the exported MP4 where you pick.</li>
-      <li><strong>Sync storage</strong> — your preferences (zoom depth, quality, audio). No recordings are uploaded.</li>
+      <li><strong>Sync storage</strong> — your preferences (zoom depth, quality, audio, camera). No recordings are uploaded.</li>
     </ul>
 
     <h2>What Zinra does not do</h2>
@@ -85,7 +87,10 @@
     </ul>
 
     <h2>Permissions</h2>
-    <p><code>tabCapture</code>, <code>tabs</code>, <code>activeTab</code>, <code>scripting</code>, <code>storage</code>, and <code>downloads</code> exist so Zinra can record a tab, place zooms, remember settings, and save a file. Host access is used only to inject the recorder helper on the tab you film.</p>
+    <p><code>tabCapture</code>, <code>desktopCapture</code>, <code>tabs</code>, <code>activeTab</code>, <code>scripting</code>, <code>storage</code>, and <code>downloads</code> exist so Zinra can record a tab or a screen you pick, place zooms, remember settings, and save a file. Host access is used only to inject the click-tracking helper on a tab you are filming. Camera uses the normal Chrome camera prompt, only when Include camera is on.</p>
+
+    <h2>How automatic zoom uses pointer data</h2>
+    <p>Auto zoom is a timeline of clips built from left-clicks and typing, not from pixels in the video. It runs on Record this page, and on a shared tab or window while you work in Chrome. It does not run on an entire-screen share. You can turn it off with “Mark a zoom on each click,” and you can edit or delete every clip after the fact.</p>
 
     <h2>Contact</h2>
     <p>For privacy questions, use the Chrome Web Store support email listed on the Zinra listing, or open an issue on <a href="https://github.com/jafetmora79-lab/Zinra-Screen-Recorder">GitHub</a>.</p>

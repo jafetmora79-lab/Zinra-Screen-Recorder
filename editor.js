@@ -5,7 +5,13 @@ import {
   activeClickEffects,
   samplePointer,
   sourceFromCanvasPoint,
-  resetCameraCache
+  resetCameraCache,
+  normalizeWebcam,
+  hitWebcamHandle,
+  moveWebcamTo,
+  resizeWebcamTo,
+  sampleLetterboxFrame,
+  detectLetterboxCrop
 } from "./compositor.js";
 import { autoZoomClips } from "./camera-path.js";
 import { resolveExportSize } from "./encode.js";
@@ -38,18 +44,30 @@ const ASPECT_RATIOS = {
 
 // Largest centered rect of `ratio` (w/h) that fits inside the source frame,
 // normalized to [0,1] so it composes with samples/clicks (also full-source).
-function cropForAspect(ratio, srcW, srcH) {
-  if (!ratio || !srcW || !srcH) return { x: 0, y: 0, w: 1, h: 1 };
-  const srcRatio = srcW / srcH;
-  let w, h;
-  if (ratio > srcRatio) {
-    w = 1;
-    h = (srcW / ratio) / srcH;
+function cropForAspect(ratio, srcW, srcH, base = { x: 0, y: 0, w: 1, h: 1 }) {
+  const bx = clampRange(Number(base.x) || 0, 0, 1);
+  const by = clampRange(Number(base.y) || 0, 0, 1);
+  const bw = clampRange(Number(base.w) || 1, 0.05, 1);
+  const bh = clampRange(Number(base.h) || 1, 0.05, 1);
+  if (!ratio || !srcW || !srcH) return { x: bx, y: by, w: bw, h: bh };
+  const boxW = bw * srcW;
+  const boxH = bh * srcH;
+  const boxRatio = boxW / Math.max(1, boxH);
+  let w;
+  let h;
+  if (ratio > boxRatio) {
+    w = bw;
+    h = (boxW / ratio) / srcH;
   } else {
-    h = 1;
-    w = (srcH * ratio) / srcW;
+    h = bh;
+    w = (boxH * ratio) / srcW;
   }
-  return { x: (1 - w) / 2, y: (1 - h) / 2, w, h };
+  return {
+    x: bx + (bw - w) / 2,
+    y: by + (bh - h) / 2,
+    w,
+    h
+  };
 }
 
 function depthFromSelect(value) {
@@ -198,12 +216,13 @@ async function resolveDuration(video, fallback) {
   return Math.max(fallback, 0.5);
 }
 
-export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], settings, recordedSeconds = 1, capture = {}, audioBlob = null }) {
+export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], settings, recordedSeconds = 1, capture = {}, audioBlob = null, webcamBlob = null }) {
   const qs = (id) => document.getElementById(id);
   const recordView = qs("recordView");
   const editView = qs("editView");
   const canvas = qs("editCanvas");
   const video = qs("sourceVideo");
+  const camVideo = qs("camVideo");
   const playBtn = qs("playBtn");
   const timeLabel = qs("timeLabel");
   const timelineScroll = qs("timelineScroll");
@@ -271,7 +290,12 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   const CLICK_EFFECT_COLOR = "#e0b44a";
   let clickEffectStyle = CLICK_EFFECTS[settings.clickEffect] ? settings.clickEffect : "none";
   let crop = { x: 0, y: 0, w: 1, h: 1 };
+  let contentCrop = { x: 0, y: 0, w: 1, h: 1 };
   let cropDrag = null;
+  let webcamDrag = null;
+  const hasWebcam = Boolean(webcamBlob && webcamBlob.size);
+  let webcam = normalizeWebcam({ enabled: hasWebcam, mirror: true, x: 0.86, y: 0.84, size: 0.22 });
+  if (!hasWebcam) webcam.enabled = false;
   let backgroundStyle = BACKGROUND_STYLES[settings.background] ? settings.background : "solid";
   let backgroundColorA = /^#[0-9a-f]{6}$/i.test(settings.backgroundColorA || "") ? settings.backgroundColorA : "#1a1916";
   let backgroundColorB = /^#[0-9a-f]{6}$/i.test(settings.backgroundColorB || "") ? settings.backgroundColorB : "#e0b44a";
@@ -285,6 +309,15 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       colorB: backgroundColorB,
       blurPx: BLUR_LEVELS[backgroundBlur]?.px || 0,
       padding: backgroundPadding
+    };
+  }
+
+  function webcamOptions(preview = true) {
+    if (!hasWebcam || webcam.enabled === false || !camVideo) return null;
+    return {
+      ...webcam,
+      video: camVideo,
+      edit: preview && (panel === "camera" || Boolean(webcamDrag))
     };
   }
   let duration = 0;
@@ -603,6 +636,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   const loadStatus = qs("loadStatus");
   video.src = URL.createObjectURL(blob);
   video.muted = true;
+  if (hasWebcam && camVideo) {
+    camVideo.src = URL.createObjectURL(webcamBlob);
+    camVideo.muted = true;
+    camVideo.addEventListener("seeked", render);
+  }
 
   video.addEventListener("loadedmetadata", () => {
     if (video.videoWidth && video.videoHeight) {
@@ -628,6 +666,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("tabSpeed").classList.toggle("active", name === "speed");
     qs("tabCut").classList.toggle("active", name === "cut");
     qs("tabAudio").classList.toggle("active", name === "audio");
+    qs("tabCamera")?.classList.toggle("active", name === "camera");
     qs("tabCursor").classList.toggle("active", name === "cursor");
     qs("tabCrop").classList.toggle("active", name === "crop");
     qs("tabBackground").classList.toggle("active", name === "background");
@@ -636,10 +675,12 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("panelSpeed").classList.toggle("hidden", name !== "speed");
     qs("panelCut").classList.toggle("hidden", name !== "cut");
     qs("panelAudio").classList.toggle("hidden", name !== "audio");
+    qs("panelCamera")?.classList.toggle("hidden", name !== "camera");
     qs("panelCursor").classList.toggle("hidden", name !== "cursor");
     qs("panelCrop").classList.toggle("hidden", name !== "crop");
     qs("panelBackground").classList.toggle("hidden", name !== "background");
     qs("panelTrim").classList.toggle("hidden", name !== "trim");
+    render();
   }
 
   function render() {
@@ -668,9 +709,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       clickEffects: clickEffectStyle !== "none" ? activeClickEffects(clicks, t) : null,
       clickStyle: clickEffectStyle,
       clickColor: CLICK_EFFECT_COLOR,
-      focusGuide: !exporting && clip && clip.followCursor === false ? { x: clip.x, y: clip.y } : null
+      focusGuide: !exporting && clip && clip.followCursor === false ? { x: clip.x, y: clip.y } : null,
+      webcam: webcamOptions(true)
     });
     syncAudioPreview(t);
+    syncCamPreview(t);
     playhead.style.left = `${t * pps}px`;
     timeLabel.textContent = `${formatClock(t)} / ${formatClock(duration)}`;
   }
@@ -704,6 +747,35 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     for (const seg of audioTracks) {
       try { seg._el?.pause(); } catch { /* ignore */ }
     }
+    try { camVideo?.pause(); } catch { /* ignore */ }
+  }
+
+  function syncCamPreview(t) {
+    if (!hasWebcam || !camVideo || !camVideo.src) return;
+    const playing = !video.paused && !exporting;
+    if (Math.abs((camVideo.currentTime || 0) - t) > 0.12) {
+      try { camVideo.currentTime = t; } catch { /* not seekable yet */ }
+    }
+    camVideo.muted = true;
+    camVideo.playbackRate = video.playbackRate || 1;
+    if (playing && camVideo.paused) camVideo.play().catch(() => {});
+    if (!playing && !camVideo.paused) camVideo.pause();
+  }
+
+  function syncCameraPanel() {
+    const empty = qs("cameraEmpty");
+    const controls = qs("cameraControls");
+    if (empty) empty.classList.toggle("hidden", hasWebcam);
+    if (controls) controls.classList.toggle("hidden", !hasWebcam);
+    if (!hasWebcam) return;
+    const enabled = qs("cameraEnabled");
+    const mirror = qs("cameraMirror");
+    const size = qs("cameraSize");
+    const sizeVal = qs("cameraSizeVal");
+    if (enabled) enabled.checked = webcam.enabled !== false;
+    if (mirror) mirror.checked = webcam.mirror !== false;
+    if (size) size.value = String(webcam.size);
+    if (sizeVal) sizeVal.textContent = `${Math.round(webcam.size * 100)}%`;
   }
 
   function layoutTimeline() {
@@ -1132,7 +1204,40 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     window.removeEventListener("pointerup", onCropDragUp);
   }
 
+  function onWebcamDragMove(event) {
+    if (!webcamDrag) return;
+    if (webcamDrag.mode === "resize") webcam = resizeWebcamTo(webcam, canvas, event.clientX, event.clientY);
+    else webcam = moveWebcamTo(webcam, canvas, event.clientX, event.clientY);
+    syncCameraPanel();
+    render();
+  }
+  function onWebcamDragUp() {
+    webcamDrag = null;
+    canvas.style.cursor = "";
+    window.removeEventListener("pointermove", onWebcamDragMove);
+    window.removeEventListener("pointerup", onWebcamDragUp);
+    render();
+  }
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (webcamDrag || cropDrag || !hasWebcam || webcam.enabled === false) return;
+    const hit = hitWebcamHandle(webcam, canvas, event.clientX, event.clientY);
+    canvas.style.cursor = hit === "resize" ? "nwse-resize" : hit === "move" ? "grab" : "";
+  });
+
   canvas.addEventListener("pointerdown", (event) => {
+    if (hasWebcam && webcam.enabled !== false) {
+      const hit = hitWebcamHandle(webcam, canvas, event.clientX, event.clientY);
+      if (hit) {
+        event.preventDefault();
+        webcamDrag = { mode: hit };
+        showPanel("camera");
+        canvas.style.cursor = hit === "resize" ? "nwse-resize" : "grabbing";
+        window.addEventListener("pointermove", onWebcamDragMove);
+        window.addEventListener("pointerup", onWebcamDragUp);
+        return;
+      }
+    }
     if (panel === "crop") {
       if (crop.w >= 0.999 && crop.h >= 0.999) return;
       cropDrag = { originX: event.clientX, originY: event.clientY, startX: crop.x, startY: crop.y };
@@ -1152,10 +1257,26 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   qs("tabSpeed").addEventListener("click", () => showPanel("speed"));
   qs("tabCut").addEventListener("click", () => showPanel("cut"));
   qs("tabAudio").addEventListener("click", () => showPanel("audio"));
+  qs("tabCamera")?.addEventListener("click", () => showPanel("camera"));
   qs("tabCursor").addEventListener("click", () => showPanel("cursor"));
   qs("tabCrop").addEventListener("click", () => showPanel("crop"));
   qs("tabBackground").addEventListener("click", () => showPanel("background"));
   qs("tabTrim").addEventListener("click", () => showPanel("trim"));
+
+  qs("cameraEnabled")?.addEventListener("change", () => {
+    webcam.enabled = qs("cameraEnabled").checked;
+    render();
+  });
+  qs("cameraMirror")?.addEventListener("change", () => {
+    webcam.mirror = qs("cameraMirror").checked;
+    render();
+  });
+  qs("cameraSize")?.addEventListener("input", () => {
+    webcam.size = clampRange(Number(qs("cameraSize").value) || 0.22, 0.08, 0.55);
+    syncCameraPanel();
+    render();
+  });
+  syncCameraPanel();
 
   playBtn.addEventListener("click", async () => {
     if (exporting) return;
@@ -1448,6 +1569,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         chrome.storage.sync.set({ clickEffect: id }).catch(() => {});
         refreshClickEffectPicker();
         render();
+        if (isProLocked(id, settings, CLICK_EFFECTS)) showPaywall({ reason: "effect" });
       });
       wrap.appendChild(btn);
       clickEffectTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d") });
@@ -1458,7 +1580,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
 
   qs("cropAspect").addEventListener("change", () => {
     const ratio = ASPECT_RATIOS[qs("cropAspect").value];
-    crop = ratio ? cropForAspect(ratio, video.videoWidth, video.videoHeight) : { x: 0, y: 0, w: 1, h: 1 };
+    crop = ratio
+      ? cropForAspect(ratio, video.videoWidth, video.videoHeight, contentCrop)
+      : { ...contentCrop };
     render();
   });
 
@@ -1681,12 +1805,53 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     const left = remainingFreeExports(settings);
     note.textContent = left > 0 ? `${left} free export${left === 1 ? "" : "s"} left` : "No free exports left";
-    note.title = "Every export uses 1 credit, at any resolution.";
+    note.title = "Every export uses 1 credit. Click to get Pro.";
     note.classList.remove("hidden");
   }
-  updateExportCredits();
 
-  function showPaywall() {
+  function updateProChrome() {
+    const getPro = qs("getProBtn");
+    const chip = qs("proChip");
+    getPro?.classList.toggle("hidden", Boolean(settings.pro));
+    chip?.classList.toggle("hidden", !settings.pro);
+    updateExportCredits();
+  }
+  updateProChrome();
+
+  let paywallResumeExport = false;
+  const PAYWALL_COPY = {
+    upgrade: {
+      kicker: "Upgrade",
+      title: "Zinra Pro",
+      copy: "Unlimited exports, 4K and 60fps, plus extra click effects. Checkout opens in the browser — paste the license key here."
+    },
+    exports: {
+      kicker: "Free plan",
+      title: "You've used both free exports",
+      copy: "Recording and editing stay free forever. Exporting more takes Zinra Pro."
+    },
+    quality: {
+      kicker: "Pro quality",
+      title: "That export quality is Pro",
+      copy: "1080p30 stays free. 1080p60, 1440p, and 4K unlock with Zinra Pro."
+    },
+    effect: {
+      kicker: "Pro effect",
+      title: "That click effect is Pro",
+      copy: "Ripple stays free. Wave, Spark, Bloom, and Pop unlock with Zinra Pro."
+    }
+  };
+
+  function showPaywall(opts = {}) {
+    const { resumeExport = false, reason = "upgrade" } = opts;
+    paywallResumeExport = resumeExport;
+    const copy = PAYWALL_COPY[reason] || PAYWALL_COPY.upgrade;
+    const kicker = qs("paywallKicker");
+    const title = qs("paywallTitle");
+    const body = qs("paywallCopy");
+    if (kicker) kicker.textContent = copy.kicker;
+    if (title) title.textContent = copy.title;
+    if (body) body.textContent = copy.copy;
     qs("licenseStatus").textContent = "";
     qs("licenseStatus").className = "license-status";
     qs("paywallOverlay").classList.remove("hidden");
@@ -1695,6 +1860,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("paywallOverlay").classList.add("hidden");
   }
   qs("paywallCloseBtn").addEventListener("click", hidePaywall);
+  qs("getProBtn")?.addEventListener("click", () => showPaywall({ reason: "upgrade" }));
+  qs("exportCreditsNote")?.addEventListener("click", () => showPaywall({ reason: "upgrade" }));
+  qs("clickEffectProNote")?.addEventListener("click", () => showPaywall({ reason: "effect" }));
   qs("activateLicenseBtn").addEventListener("click", async () => {
     const btn = qs("activateLicenseBtn");
     const status = qs("licenseStatus");
@@ -1708,10 +1876,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       await chrome.storage.sync.set({ pro: true, licenseKey: key }).catch(() => {});
       status.className = "license-status success";
       status.textContent = "Activated — thanks for going Pro.";
-      updateExportCredits();
+      updateProChrome();
+      const resume = paywallResumeExport;
       setTimeout(() => {
         hidePaywall();
-        qs("exportBtn").click();
+        if (resume) qs("exportBtn").click();
       }, 700);
     } catch (err) {
       status.className = "license-status error";
@@ -1735,15 +1904,15 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
 
     const qualityId = qs("exportQuality")?.value || settings.quality || "1080p";
     if (isProLocked(qualityId, settings)) {
-      setExportStatus("That quality is Pro. Pick 1080p or below, or unlock Pro.");
+      showPaywall({ reason: "quality", resumeExport: true });
       return;
     }
     if (isProLocked(clickEffectStyle, settings, CLICK_EFFECTS)) {
-      setExportStatus("That click effect is Pro. Pick None or Ripple, or unlock Pro.");
+      showPaywall({ reason: "effect", resumeExport: true });
       return;
     }
     if (!canExport(settings)) {
-      showPaywall();
+      showPaywall({ reason: "exports", resumeExport: true });
       return;
     }
 
@@ -1793,6 +1962,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         background: backgroundOptions(),
         clicks,
         clickEffectStyle,
+        webcam: webcamOptions(false),
         onProgress(pct, outputTime) {
           setExportStatus(`Exporting ${Math.round(pct * 100)}% · ${formatClock(outputTime)}`, pct);
         }
@@ -1834,6 +2004,37 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   });
 
 
+  async function detectAndApplyLetterbox() {
+    const surface = capture.displaySurface || "";
+    const windowOrTab = surface === "window" || surface === "browser";
+    if (!video.videoWidth || !video.videoHeight) return;
+    const stamps = [0.04, Math.min(0.35, duration * 0.15), Math.min(0.8, duration * 0.4)];
+    const frames = [];
+    const prev = video.currentTime || 0;
+    video.pause();
+    for (const stamp of stamps) {
+      const t = clampRange(stamp, 0, Math.max(0, duration - 0.04));
+      try {
+        video.currentTime = t;
+        await wait(video, "seeked", 450);
+      } catch {
+        // Keep going with whatever frame is decoded.
+      }
+      const sample = sampleLetterboxFrame(video);
+      if (sample) frames.push(sample);
+    }
+    try { video.currentTime = prev; } catch { /* ignore */ }
+    if (!frames.length) return;
+    const next = detectLetterboxCrop(frames, { allowBlack: windowOrTab });
+    if (next.w > 0.992 && next.h > 0.992) return;
+    contentCrop = next;
+    const ratio = ASPECT_RATIOS[qs("cropAspect")?.value] || null;
+    crop = ratio
+      ? cropForAspect(ratio, video.videoWidth, video.videoHeight, contentCrop)
+      : { ...contentCrop };
+    render();
+  }
+
   (async () => {
     try {
       duration = await resolveDuration(video, recordedSeconds);
@@ -1852,9 +2053,12 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       fitMode = true;
       if (qs("exportQuality") && settings.quality) qs("exportQuality").value = settings.quality;
       qs("exportQuality")?.addEventListener("change", () => {
-        chrome.storage.sync.set({ quality: qs("exportQuality").value }).catch(() => {});
+        const qualityId = qs("exportQuality").value;
+        chrome.storage.sync.set({ quality: qualityId }).catch(() => {});
+        if (isProLocked(qualityId, settings)) showPaywall({ reason: "quality" });
       });
       layoutTimeline();
+      await detectAndApplyLetterbox();
       if (typeof ResizeObserver !== "undefined") {
         new ResizeObserver(() => {
           if (fitMode) layoutTimeline();
