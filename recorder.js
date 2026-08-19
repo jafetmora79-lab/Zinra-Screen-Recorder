@@ -555,6 +555,13 @@ window.addEventListener("beforeunload", () => {
         await begin(stream, settings);
         return;
       }
+      // The popup's own picker (chrome.desktopCapture) either wasn't called,
+      // was cancelled, or lost its user-gesture window before this tab could
+      // ask for the result. Not a crash - just means there's no stream id to
+      // reuse, so fall back to picking here. Logged so a real failure here
+      // is diagnosable from this tab's console instead of looking identical
+      // to a normal first run.
+      console.warn("Zinra: no reusable desktop stream from the popup picker, falling back to manual share.", prep);
     } catch (err) {
       showScreenModeStart();
       showError(err.message || "Could not use that share. Click Share your screen to pick again.");
