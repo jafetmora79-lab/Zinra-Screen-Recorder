@@ -40,16 +40,22 @@
       font-family: var(--sans);
       line-height: 1.45;
     }
-    body { min-height: 100vh; }
     a { color: inherit; }
 
-    .wrap {
-      max-width: 980px;
-      margin: 0 auto;
+    /* Vertically centers the whole block as one unit on tall viewports,
+       without letting any child stretch to fill leftover space - that's
+       what previously made the tile grid balloon to absurd heights when
+       zooming out increased the effective CSS-pixel viewport height. */
+    body {
       min-height: 100vh;
-      padding: 18px 24px 14px;
       display: flex;
       flex-direction: column;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 1000px;
+      margin: auto;
+      padding: 40px 24px 28px;
     }
 
     .topbar {
@@ -57,8 +63,8 @@
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 10px 24px;
-      margin-bottom: 14px;
+      gap: 10px 20px;
+      margin-bottom: 22px;
     }
     .brand {
       display: inline-flex;
@@ -76,32 +82,36 @@
       list-style: none;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       margin: 0;
-      padding: 0;
-      font-size: 12.5px;
+      padding: 7px 14px 7px 6px;
+      font-size: 12px;
       color: var(--ink-dim);
       flex-wrap: wrap;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 99px;
     }
-    .steps-inline li { display: flex; align-items: center; gap: 6px; }
+    .steps-inline li { display: flex; align-items: center; gap: 7px; }
     .steps-inline b {
       display: inline-grid;
       place-items: center;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: var(--saffron);
       color: #1a1916;
       font-size: 10px;
       font-weight: 800;
+      flex-shrink: 0;
     }
-    .steps-inline .arrow { color: var(--line); opacity: 0.8; }
+    .steps-inline .arrow { color: var(--ink-dim); opacity: 0.5; }
     .steps-inline strong { color: var(--ink); font-weight: 650; }
 
-    h1 { font-size: clamp(19px, 2.6vw, 24px); letter-spacing: -0.02em; margin: 0 0 4px; }
-    .lede { color: var(--ink-dim); font-size: 13.5px; max-width: 70ch; margin: 0 0 16px; }
+    h1 { font-size: clamp(20px, 2.4vw, 27px); letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lede { color: var(--ink-dim); font-size: 14px; max-width: 62ch; margin: 0 0 16px; }
 
-    details.rule { display: inline-block; margin-top: 4px; }
+    details.rule { display: inline-block; margin: 0 0 30px; }
     details.rule summary {
       cursor: pointer;
       color: var(--steel);
@@ -113,26 +123,30 @@
     details.rule summary::before { content: "＋ "; }
     details.rule[open] summary::before { content: "－ "; }
     details.rule .rule-body {
-      margin-top: 8px;
-      padding: 12px 14px;
+      margin-top: 10px;
+      padding: 14px 16px;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 12.5px;
       color: var(--ink-dim);
       max-width: 70ch;
     }
     details.rule strong { color: var(--ink); }
 
-    h2 { font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-dim); margin: 4px 0 10px; font-weight: 650; }
+    h2 {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin: 0 0 14px;
+      font-weight: 650;
+    }
 
     .grid {
-      flex: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      grid-auto-rows: 1fr;
-      gap: 12px;
-      min-height: 0;
+      gap: 14px;
     }
     @media (max-width: 720px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
@@ -144,8 +158,9 @@
       position: relative;
       background: var(--panel);
       border: 1px solid var(--line);
+      border-top: 3px solid var(--tile-accent, var(--saffron));
       border-radius: 14px;
-      padding: 16px 16px;
+      padding: 18px 18px 16px;
       cursor: pointer;
       appearance: none;
       text-align: left;
@@ -154,36 +169,40 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      min-height: 152px;
+      box-shadow: 0 1px 2px rgba(26, 25, 22, 0.05);
+      transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
     }
-    .tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
-    .tile:active { transform: translateY(0); }
-    .tile h3 { margin: 0 0 3px; font-size: 14.5px; }
+    .tile:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(26, 25, 22, 0.1); }
+    .tile:active { transform: translateY(-1px); }
+    .tile:focus-visible { outline: 2px solid var(--tile-accent, var(--saffron)); outline-offset: 2px; }
+    .tile h3 { margin: 0 0 3px; font-size: 15px; letter-spacing: -0.01em; }
     .tile p { margin: 0; font-size: 12px; color: var(--ink-dim); }
     .tile-readout {
       margin-top: auto;
-      padding-top: 10px;
+      padding-top: 12px;
       font-weight: 800;
-      font-size: 20px;
+      font-size: 21px;
       letter-spacing: -0.02em;
+      color: var(--tile-accent, var(--saffron));
     }
 
     /* Punch-in mark: two offset rounded rects, drawn per tile with its own color. */
-    .mark { position: relative; display: block; width: 24px; height: 24px; margin-bottom: 10px; }
+    .mark { position: relative; display: block; width: 22px; height: 22px; margin-bottom: 12px; color: var(--tile-accent, var(--saffron)); }
     .mark span {
       position: absolute;
       border: 2px solid currentColor;
       border-radius: 5px;
     }
-    .mark span:first-child { top: 1px; left: 1px; width: 15px; height: 12px; opacity: 0.55; }
-    .mark span:last-child { bottom: 1px; right: 1px; width: 15px; height: 12px; }
+    .mark span:first-child { top: 1px; left: 1px; width: 14px; height: 11px; opacity: 0.5; }
+    .mark span:last-child { bottom: 1px; right: 1px; width: 14px; height: 11px; }
 
-    .tile.counter { color: var(--saffron); }
-    .tile.toggle { color: var(--steel); }
-    .tile.cycle { color: var(--leaf); }
-    .tile.pulse { color: var(--clay); }
-    .tile.reveal { color: var(--saffron); }
-    .tile.checklist { color: var(--steel); }
+    .tile.counter { --tile-accent: var(--saffron); }
+    .tile.toggle { --tile-accent: var(--steel); }
+    .tile.cycle { --tile-accent: var(--leaf); }
+    .tile.pulse { --tile-accent: var(--clay); }
+    .tile.reveal { --tile-accent: var(--saffron); }
+    .tile.checklist { --tile-accent: var(--leaf); }
 
     .pill {
       display: inline-block;
@@ -194,13 +213,13 @@
       background: var(--line);
       color: var(--ink-dim);
     }
-    .tile.is-on .pill { background: currentColor; color: var(--panel); }
+    .tile.is-on .pill { background: var(--tile-accent); color: var(--panel); }
 
     .pulse-ring {
       position: absolute;
       inset: 0;
       border-radius: 14px;
-      border: 2px solid currentColor;
+      border: 2px solid var(--tile-accent);
       opacity: 0;
       pointer-events: none;
     }
@@ -210,20 +229,22 @@
       100% { opacity: 0; transform: scale(1.08); }
     }
 
-    .checklist ul { list-style: none; margin: auto 0 0; padding: 10px 0 0; font-size: 12px; }
+    .checklist ul { list-style: none; margin: auto 0 0; padding: 12px 0 0; font-size: 12px; }
     .checklist li { padding: 2px 0; color: var(--ink-dim); }
-    .checklist li.done { color: var(--ink); text-decoration: line-through; opacity: 0.6; }
+    .checklist li.done { color: var(--ink); text-decoration: line-through; opacity: 0.55; }
 
     .reveal-text {
       margin-top: auto;
-      padding-top: 10px;
-      font-size: 12px;
+      padding-top: 12px;
+      font-size: 12.5px;
       font-weight: 650;
+      color: var(--tile-accent);
       min-height: 32px;
     }
 
-    footer { margin-top: 14px; color: var(--ink-dim); font-size: 11.5px; text-align: center; }
-    footer a { text-decoration: underline; }
+    footer { margin-top: 26px; color: var(--ink-dim); font-size: 11.5px; text-align: center; }
+    footer a { color: var(--steel); text-decoration: none; font-weight: 650; }
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -340,7 +361,7 @@
     cycleIndex = (cycleIndex + 1) % cycleColors.length;
     const [name, color] = cycleColors[cycleIndex];
     cycleVal.textContent = name;
-    cycleTile.style.color = color;
+    cycleTile.style.setProperty("--tile-accent", color);
   });
 
   // Pulse
