@@ -1400,6 +1400,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     qs("cursorProNote").classList.toggle("hidden", !isProLocked(cursorStyle, settings, CURSOR_STYLES));
     qs("cursorColorField").classList.toggle("hidden", cursorStyle === "none");
+    updateCursorDebugLine();
   }
   function buildCursorPicker() {
     const wrap = qs("cursorPicker");
@@ -1444,7 +1445,17 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     refreshCursorPicker();
   }
+  function updateCursorDebugLine() {
+    const line = qs("cursorDebugLine");
+    if (!line) return;
+    const version = (typeof chrome !== "undefined" && chrome.runtime?.getManifest)
+      ? chrome.runtime.getManifest().version
+      : "?";
+    const methodLabel = hasRealCursor ? "Share tab (real cursor in pixels)" : "Tab recording (no real cursor)";
+    line.textContent = `Zinra v${version}\nCapture: ${methodLabel}\nActive style: ${cursorStyle}`;
+  }
   buildCursorPicker();
+  updateCursorDebugLine();
   qs("realCursorWarning").classList.toggle("hidden", !hasRealCursor);
   if (hasRealCursor) {
     qs("cursorPanelCopy").textContent = "This take was recorded with Share tab, which captures your real cursor along with the page.";

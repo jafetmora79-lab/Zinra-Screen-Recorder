@@ -622,6 +622,17 @@ body.is-live .preview-wrap {
 }
 .cursor-tile.locked:hover { border-color: var(--line); background: var(--bg-3); }
 
+.cursor-debug-line {
+  margin: 0 0 10px;
+  padding: 7px 9px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  font: 11px var(--mono);
+  color: var(--accent);
+  white-space: pre-line;
+}
+
 .cursor-tile-pro {
   position: absolute;
   top: 4px;
