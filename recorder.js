@@ -242,7 +242,16 @@ async function begin(stream, settings) {
   shareBtn.classList.add("hidden");
   setStatus("live");
   showError("");
-  chrome.runtime.sendMessage({ type: "recording-started", mode: captureMode }).catch(() => {});
+  // getDisplayMedia never tells the page which exact tab/window was picked
+  // (that's deliberate, on Chrome's side, for privacy) - but it does say
+  // *what kind* of source it was. "monitor" means the whole screen, where a
+  // click's page-relative position has no reliable spot in the recorded
+  // frame. "browser" (a tab) or "window" at least means Chrome itself is
+  // what's being shown, so tracking clicks on whichever tab has focus is a
+  // reasonable best-effort guess, even without knowing the exact source.
+  const displaySurface = videoTrack.getSettings?.().displaySurface;
+  const trackClicks = captureMode === "screen" && displaySurface !== "monitor";
+  chrome.runtime.sendMessage({ type: "recording-started", mode: captureMode, trackClicks }).catch(() => {});
 }
 
 function openEdit() {
@@ -334,6 +343,12 @@ function showScreenModeStart() {
   if (label) label.textContent = "Share your screen";
   hint.textContent = "Pick the screen or window to record. Chrome shows its own picker and a small sharing bar while you're live — that's normal, and you'll be sent back to what you were doing once sharing starts.";
   hint.classList.remove("hidden");
+  // Chrome requires a real click/keypress in this tab before it'll open the
+  // picker - a fresh tab doesn't inherit the click that opened it, and the
+  // popup can't hold the picker open itself (it closes the moment it loses
+  // focus). Focusing the button means Enter/Space works immediately, so
+  // there's at least no need to hunt for it with the mouse first.
+  shareBtn.focus();
 }
 
 startBtn.addEventListener("click", async () => {

@@ -5,8 +5,26 @@ let screenOriginTabId = null;
 let recorderTabId = null;
 let recorderPort = null;
 let recordingLive = false;
+let screenTrackClicks = false;
+let armedScreenTabId = null;
 const bubbleTabIds = new Set();
 const pendingPointer = [];
+
+async function armTab(tabId) {
+  if (!tabId) return;
+  await chrome.scripting.executeScript({
+    target: { tabId, allFrames: false },
+    files: ["content.js"]
+  }).catch(() => {});
+  await chrome.tabs.sendMessage(tabId, { type: "zinra-arm" }).catch(() => {});
+}
+
+async function retargetScreenTracking(tabId) {
+  if (!screenTrackClicks || tabId === armedScreenTabId) return;
+  if (armedScreenTabId) disarmTab(armedScreenTabId);
+  await armTab(tabId);
+  armedScreenTabId = tabId;
+}
 
 async function injectBubble(tabId) {
   if (!tabId || tabId === recorderTabId || bubbleTabIds.has(tabId)) return;
@@ -78,19 +96,25 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.tabs.onRemoved.addListener((id) => {
   bubbleTabIds.delete(id);
+  if (id === armedScreenTabId) armedScreenTabId = null;
   if (id === recorderTabId) {
     disarmTab(recordingTabId);
+    disarmTab(armedScreenTabId);
     recorderTabId = null;
     recordingTabId = null;
     screenOriginTabId = null;
     recorderPort = null;
     recordingLive = false;
+    screenTrackClicks = false;
+    armedScreenTabId = null;
     chrome.action.setBadgeText({ text: "" });
   }
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  if (recordingLive) injectBubble(tabId);
+  if (!recordingLive) return;
+  injectBubble(tabId);
+  retargetScreenTracking(tabId);
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -139,11 +163,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // Tab capture: the content script needs re-arming on the recorded tab
       // (it may have been torn down while the recorder tab was loading), then
       // that tab comes back into focus so the user is looking at what's live.
-      chrome.scripting.executeScript({
-        target: { tabId: recordingTabId, allFrames: false },
-        files: ["content.js"]
-      }).catch(() => {});
-      chrome.tabs.sendMessage(recordingTabId, { type: "zinra-arm" }).catch(() => {});
+      armTab(recordingTabId);
+    } else if (msg.trackClicks && screenOriginTabId) {
+      // Screen/window capture of a Chrome source: best-effort click tracking
+      // on whichever tab has focus, re-targeted as the user switches tabs.
+      screenTrackClicks = true;
+      armTab(screenOriginTabId);
+      armedScreenTabId = screenOriginTabId;
     }
     if (returnTabId) {
       chrome.tabs.update(returnTabId, { active: true }).catch(() => {});
@@ -156,9 +182,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "recording-stopped") {
     chrome.action.setBadgeText({ text: "" });
     disarmTab(recordingTabId);
+    disarmTab(armedScreenTabId);
     recordingTabId = null;
     screenOriginTabId = null;
     recordingLive = false;
+    screenTrackClicks = false;
+    armedScreenTabId = null;
     removeBubbles();
     sendResponse({ ok: true });
     return false;
@@ -193,9 +222,9 @@ async function startRecording(tabId, mode) {
   const source = await chrome.tabs.get(tabId);
 
   if (isScreen) {
-    // Screen/window capture isn't tied to a single tab - there's nothing to
-    // inject a pointer-tracking content script into, so auto-zoom-on-click
-    // simply won't have a signal to work from outside a Chrome tab. Just
+    // Screen/window capture isn't tied to a single tab yet - we won't know
+    // whether it's worth tracking clicks until the user actually picks a
+    // source (see the trackClicks branch in recording-started below). Just
     // remember where to send focus back once sharing starts.
     screenOriginTabId = tabId;
   } else {
