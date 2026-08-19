@@ -398,7 +398,8 @@ body.is-live .preview-wrap {
 }
 
 .tool-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin-bottom: 16px;
   padding: 4px;
