@@ -121,11 +121,6 @@
     }
     .tile:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
     .tile:active { transform: translateY(0); }
-    .tile-mark {
-      width: 30px;
-      height: 30px;
-      margin-bottom: 14px;
-    }
     .tile h3 { margin: 0 0 4px; font-size: 15.5px; }
     .tile p { margin: 0; font-size: 12.5px; color: var(--ink-dim); }
     .tile-readout {
@@ -136,7 +131,7 @@
     }
 
     /* Punch-in mark: two offset rounded rects, drawn per tile with its own color. */
-    .mark { position: relative; width: 30px; height: 30px; }
+    .mark { position: relative; display: block; width: 30px; height: 30px; margin-bottom: 14px; }
     .mark span {
       position: absolute;
       border: 2px solid currentColor;

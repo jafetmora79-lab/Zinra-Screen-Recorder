@@ -491,14 +491,14 @@
   /* ===== Features ===== */
   .feature-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1px;
     background: var(--line);
     border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
   }
-  @media (max-width: 860px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
   .feature-cell { background: var(--bg-panel); padding: 26px 24px; }
   .feature-swatch { width: 10px; height: 10px; border-radius: 3px; margin-bottom: 14px; }
@@ -833,7 +833,7 @@
     <div class="hero-copy">
       <p class="eyebrow">Chrome extension · Screen recorder</p>
       <h1>Record a page.<br>Render the zoom.</h1>
-      <p class="hero-lede">Zinra records the tab you’re already on, punches in on every click, and hands you a real timeline — zoom, speed, cuts, voiceover, crop — then encodes one MP4 on your machine. Nothing streams. Nothing uploads.</p>
+      <p class="hero-lede">Zinra records the tab you’re already on, punches in on every click, and hands you a real timeline — zoom, speed, cuts, voiceover, crop, backgrounds — then encodes one MP4 on your machine. Nothing streams. Nothing uploads.</p>
       <div class="hero-actions">
         <a class="btn primary js-cta" href="#install">Get Zinra — it’s free</a>
         <a class="btn ghost" href="#editor">See the editor</a>
@@ -985,6 +985,16 @@
         <h3>Aspect-ratio crop</h3>
         <p>16:9, 9:16 for phone screens, 1:1, or 4:5 — cropped straight from full resolution, never rescaled first.</p>
       </div>
+      <div class="feature-cell">
+        <div class="feature-swatch" style="background:var(--steel)"></div>
+        <h3>Custom backgrounds</h3>
+        <p>Solid, gradient, or your own color behind the recording — with none, small, heavy, or complete blur.</p>
+      </div>
+      <div class="feature-cell">
+        <div class="feature-swatch" style="background:var(--leaf)"></div>
+        <h3>Smooth camera</h3>
+        <p>Pans and zooms ease between clips instead of snapping, so the punch-in never feels abrupt.</p>
+      </div>
     </div>
   </section>
 
@@ -992,7 +1002,7 @@
     <div class="section-head">
       <p class="eyebrow">The editor</p>
       <h2>What you’ll actually see.</h2>
-      <p class="lede">Not a stock screenshot. The same tabs, tracks, and playhead as the extension — Zoom, Speed, Cut, Audio, Effects, Crop, Trim.</p>
+      <p class="lede">Not a stock screenshot. The same tabs, tracks, and playhead as the extension — Zoom, Speed, Cut, Audio, Effects, Crop, Background, Trim.</p>
     </div>
     <div class="editor-shot" aria-hidden="true">
       <div class="es-top">
@@ -1208,6 +1218,7 @@
         <p class="store-only">Free on the Chrome Web Store. Record a tab, punch in on clicks, export an MP4 on your machine.</p>
         <a class="btn primary js-cta prelaunch-only" href="https://github.com/jafetmora79-lab/Zinra-Screen-Recorder" target="_blank" rel="noopener" style="background:var(--accent-fill);color:#1a1916;">View the repo on GitHub →</a>
         <a class="btn chrome js-cta store-only" href="#install">Add to Chrome — it’s free</a>
+        <p style="margin-top:18px;font-size:13px;">Nothing to record yet? Try the <a href="playground.html" style="text-decoration:underline;">playground page</a> — built to click around on while you test.</p>
       </div>
       <ol class="install-steps prelaunch-only">
         <li>Clone or download the repository</li>
