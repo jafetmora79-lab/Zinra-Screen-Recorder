@@ -156,6 +156,6 @@ recordScreenBtn.addEventListener("click", () => {
   applySettings(state.settings);
   setRecordUi(state.recording);
   document.getElementById("getProBtn")?.addEventListener("click", () => {
-    chrome.tabs.create({ url: "https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15" });
+    chrome.tabs.create({ url: "https://zinrastudio.lemonsqueezy.com/checkout/buy/835ba522-81e3-4487-9549-def8dd233e84" });
   });
 })();

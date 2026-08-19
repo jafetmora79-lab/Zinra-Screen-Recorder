@@ -72,7 +72,7 @@ Record and edit are unlimited on Free. Exporting is the gate.
 **Status: `ENFORCE_PRO` is now `true`** — the gates are live in code (`settings.js`: `FREE_EXPORT_LIMIT`, `canExport`, `isProLocked`). What's still missing before this can actually make money:
 
 1. **A real Lemon Squeezy product.** Create a Zinra product at lemonsqueezy.com with two variants (Monthly $7, Yearly $49), turn on **license keys** for it (Product → License Keys). The extension's paywall (`editor.js` → `activateLicense`) already calls Lemon Squeezy's public License API (`/v1/licenses/activate`) — no code change needed once the product exists, any key it issues will just work.
-2. **A checkout link.** The live buy URL is in `paywallBuyBtn` in `recorder.html`: `https://zinrastudio.lemonsqueezy.com/checkout/buy/cdd0e3e2-4aff-4205-ba10-fe7e80917d15`
+2. **A checkout link.** The live buy URL is in `paywallBuyBtn` in `recorder.html`: `https://zinrastudio.lemonsqueezy.com/checkout/buy/835ba522-81e3-4487-9549-def8dd233e84`
 3. **Delivering the key after purchase.** Lemon Squeezy emails the license key automatically on purchase — the buyer pastes it into the paywall's “License key” field, which activates it and sets `pro: true` in `chrome.storage.sync`. No extra delivery mechanism needed.
 
 Do not put a credit-card form inside the extension itself — Lemon Squeezy's hosted checkout handles payment entirely outside the extension.
