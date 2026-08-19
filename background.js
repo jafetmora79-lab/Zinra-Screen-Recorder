@@ -4,7 +4,29 @@ let recordingTabId = null;
 let screenOriginTabId = null;
 let recorderTabId = null;
 let recorderPort = null;
+let recordingLive = false;
+const bubbleTabIds = new Set();
 const pendingPointer = [];
+
+async function injectBubble(tabId) {
+  if (!tabId || tabId === recorderTabId || bubbleTabIds.has(tabId)) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, allFrames: false },
+      files: ["stop-bubble.js"]
+    });
+    bubbleTabIds.add(tabId);
+  } catch {
+    // Page doesn't allow content scripts (chrome://, Web Store, etc.) - skip.
+  }
+}
+
+function removeBubbles() {
+  for (const tabId of bubbleTabIds) {
+    chrome.tabs.sendMessage(tabId, { type: "zinra-remove-bubble" }).catch(() => {});
+  }
+  bubbleTabIds.clear();
+}
 
 function forwardPointer(msg) {
   try {
@@ -55,14 +77,20 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 chrome.tabs.onRemoved.addListener((id) => {
+  bubbleTabIds.delete(id);
   if (id === recorderTabId) {
     disarmTab(recordingTabId);
     recorderTabId = null;
     recordingTabId = null;
     screenOriginTabId = null;
     recorderPort = null;
+    recordingLive = false;
     chrome.action.setBadgeText({ text: "" });
   }
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  if (recordingLive) injectBubble(tabId);
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -105,6 +133,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "recording-started") {
     chrome.action.setBadgeText({ text: "REC" });
     chrome.action.setBadgeBackgroundColor({ color: "#c45c4a" });
+    recordingLive = true;
+    const returnTabId = recordingTabId || screenOriginTabId;
     if (recordingTabId) {
       // Tab capture: the content script needs re-arming on the recorded tab
       // (it may have been torn down while the recorder tab was loading), then
@@ -114,11 +144,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         files: ["content.js"]
       }).catch(() => {});
       chrome.tabs.sendMessage(recordingTabId, { type: "zinra-arm" }).catch(() => {});
-      chrome.tabs.update(recordingTabId, { active: true }).catch(() => {});
-    } else if (screenOriginTabId) {
-      // Screen/window capture has no single tab to arm - just hand focus
-      // back to whatever the user was on before they started sharing.
-      chrome.tabs.update(screenOriginTabId, { active: true }).catch(() => {});
+    }
+    if (returnTabId) {
+      chrome.tabs.update(returnTabId, { active: true }).catch(() => {});
+      injectBubble(returnTabId);
     }
     sendResponse({ ok: true });
     return false;
@@ -129,6 +158,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     disarmTab(recordingTabId);
     recordingTabId = null;
     screenOriginTabId = null;
+    recordingLive = false;
+    removeBubbles();
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (msg.type === "zinra-stop-bubble-click") {
+    stopRecording();
     sendResponse({ ok: true });
     return false;
   }

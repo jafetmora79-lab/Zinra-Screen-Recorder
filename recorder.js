@@ -130,11 +130,15 @@ async function getDisplayStream() {
     noiseSuppression: false,
     autoGainControl: false
   };
+  // No preferCurrentTab here on purpose: this runs *inside* the recorder tab
+  // itself, so "current tab" would mean Zinra's own blank editor page, not
+  // whatever the user actually wants to share - that mismatch was forcing
+  // people through an extra decline-then-repick step. Chrome's picker opens
+  // straight to the neutral Screen/Window/Tab choice instead.
   try {
     return await navigator.mediaDevices.getDisplayMedia({
       video: { ...video, resizeMode: "none" },
-      audio,
-      preferCurrentTab: true
+      audio
     });
   } catch {
     return navigator.mediaDevices.getDisplayMedia({ video, audio: true });
