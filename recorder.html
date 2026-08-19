@@ -392,10 +392,21 @@
           </div>
         </div>
 
+        <div id="backgroundImageWrap" class="hidden">
+          <p class="panel-kicker">Image</p>
+          <label class="btn ghost small file-btn">
+            Choose image
+            <input id="backgroundImageInput" type="file" accept="image/*" class="hidden" />
+          </label>
+          <p id="backgroundImageName" class="panel-copy">No image chosen</p>
+          <button id="backgroundImageClear" type="button" class="btn ghost small hidden">Remove image</button>
+          <p id="backgroundImageStatus" class="panel-copy"></p>
+        </div>
+
         <div id="backgroundBlurSection">
           <p class="panel-kicker">Blur</p>
           <div id="backgroundBlurPicker" class="seg-group"></div>
-          <p id="backgroundBlurNote" class="panel-copy hidden">Only visible with a Blurred style — Solid and Gradient fill edge to edge.</p>
+          <p id="backgroundBlurNote" class="panel-copy hidden">Only visible with a Blurred or Image style — Solid and Gradient fill edge to edge.</p>
         </div>
 
         <p class="panel-kicker">Padding</p>

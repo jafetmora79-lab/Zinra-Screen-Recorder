@@ -349,11 +349,11 @@ export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
 }
 
 // Fills the full w x h canvas behind the (possibly inset) video: a flat
-// color, a two-color gradient, or a softened cover-fit copy of the current
-// frame itself. blurPx applies to whichever style is active - it's a no-op
-// look for a flat color but softens gradient banding and is the whole point
-// for "blurred". Overfills by the blur radius so a blurred edge never peeks
-// past the canvas boundary.
+// color, a two-color gradient, a softened cover-fit copy of the current
+// frame itself, or a user-supplied image. blurPx applies to whichever style
+// is active - it's a no-op look for a flat color but softens gradient
+// banding and is the whole point for "blurred"/"image". Overfills by the
+// blur radius so a blurred edge never peeks past the canvas boundary.
 function drawBackground(ctx, video, bg, w, h, cropX, cropY, cropW, cropH) {
   const blurPx = Math.max(0, Number(bg?.blurPx) || 0);
   if (bg?.style === "blurred" && video.readyState >= 2) {
@@ -363,6 +363,18 @@ function drawBackground(ctx, video, bg, w, h, cropX, cropY, cropW, cropH) {
     const dw = cropW * scale;
     const dh = cropH * scale;
     ctx.drawImage(video, cropX, cropY, cropW, cropH, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    ctx.restore();
+    return;
+  }
+  if (bg?.style === "image" && bg.image) {
+    ctx.save();
+    if (blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
+    const iw = bg.image.width || bg.image.naturalWidth || 1;
+    const ih = bg.image.height || bg.image.naturalHeight || 1;
+    const scale = Math.max(w / iw, h / ih) * (blurPx > 0 ? 1.08 : 1);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    ctx.drawImage(bg.image, (w - dw) / 2, (h - dh) / 2, dw, dh);
     ctx.restore();
     return;
   }
@@ -595,7 +607,11 @@ function isPadPixel(r, g, b, allowBlack) {
   // DXGI / Chrome window+tab capture leftover is typically saturated green
   // that flickers as the unused texture rows get recycled.
   if (g >= 70 && g >= r + 26 && g >= b + 26) return true;
-  if (allowBlack && r <= 10 && g <= 10 && b <= 10) return true;
+  // Catches true encoder/driver black as well as near-black page backgrounds
+  // (e.g. a dark-mode page's own outer margin, commonly ~#171613-#1a1916) -
+  // still well under a typical dark-theme panel/card color, which reads as
+  // deliberately visible content rather than a solid margin.
+  if (allowBlack && r <= 24 && g <= 24 && b <= 24) return true;
   return false;
 }
 
@@ -656,16 +672,20 @@ export function detectLetterboxCrop(frames, options = {}) {
     return votes >= Math.max(1, Math.ceil(list.length / 2));
   }
 
+  // Top/bottom and left/right margins are independent - a recording can be
+  // pillarboxed (side margins only, e.g. a centered page narrower than the
+  // captured viewport) without ever having letterboxing (top/bottom), so
+  // neither axis should gate detection of the other.
   let top = 0;
   const maxTop = Math.floor(height * 0.3);
   while (top < maxTop && rowIsPad(top)) top += 1;
   let bottom = height - 1;
   const minBottom = Math.ceil(height * 0.7);
   while (bottom > minBottom && rowIsPad(bottom)) bottom -= 1;
-
-  const contentH = bottom - top + 1;
-  if (top < 2 && height - 1 - bottom < 2) return { x: 0, y: 0, w: 1, h: 1 };
-  if (contentH / height < 0.55) return { x: 0, y: 0, w: 1, h: 1 };
+  if ((bottom - top + 1) / height < 0.55) {
+    top = 0;
+    bottom = height - 1;
+  }
 
   let left = 0;
   const maxLeft = Math.floor(width * 0.22);
@@ -673,17 +693,19 @@ export function detectLetterboxCrop(frames, options = {}) {
   let right = width - 1;
   const minRight = Math.ceil(width * 0.78);
   while (right > minRight && colIsPad(right, top, bottom)) right -= 1;
-
-  const contentW = right - left + 1;
-  if (contentW / width < 0.55) {
+  if ((right - left + 1) / width < 0.55) {
     left = 0;
     right = width - 1;
+  }
+
+  if (top < 2 && height - 1 - bottom < 2 && left < 2 && width - 1 - right < 2) {
+    return { x: 0, y: 0, w: 1, h: 1 };
   }
 
   return {
     x: left / width,
     y: top / height,
     w: (right - left + 1) / width,
-    h: contentH / height
+    h: (bottom - top + 1) / height
   };
 }

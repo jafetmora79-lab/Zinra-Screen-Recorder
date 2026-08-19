@@ -48,7 +48,8 @@ export const CLICK_EFFECTS = {
 export const BACKGROUND_STYLES = {
   solid: { id: "solid", label: "Solid" },
   gradient: { id: "gradient", label: "Gradient" },
-  blurred: { id: "blurred", label: "Blurred" }
+  blurred: { id: "blurred", label: "Blurred" },
+  image: { id: "image", label: "Image" }
 };
 
 // One-click block-color swatches, straight from the brand palette.
