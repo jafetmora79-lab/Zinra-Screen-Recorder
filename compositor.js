@@ -267,127 +267,6 @@ function colorWithAlpha(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function drawCursorGlyph(ctx, style, x, y, down, color = "#e0b44a", scale = 1) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scale, scale);
-  ctx.lineJoin = "round";
-  if (style === "arrow") {
-    ctx.scale(down ? 0.92 : 1, down ? 0.92 : 1);
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, 15);
-    ctx.lineTo(3.6, 11.8);
-    ctx.lineTo(6.2, 17.6);
-    ctx.lineTo(8.6, 16.5);
-    ctx.lineTo(6.1, 10.8);
-    ctx.lineTo(10.4, 10.4);
-    ctx.closePath();
-    ctx.fillStyle = "#f3efe6";
-    ctx.strokeStyle = "#1a1916";
-    ctx.lineWidth = 1.15;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.stroke();
-  } else if (style === "dot") {
-    const r = down ? 9 : 7;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = down ? 16 : 10;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 1.4;
-    ctx.strokeStyle = "#1a1916";
-    ctx.stroke();
-  } else if (style === "spotlight") {
-    const r = down ? 46 : 36;
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    grad.addColorStop(0, colorWithAlpha(color, 0.55));
-    grad.addColorStop(1, colorWithAlpha(color, 0));
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  } else if (style === "hand") {
-    ctx.scale(down ? 0.92 : 1, down ? 0.92 : 1);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = down ? 10 : 6;
-    ctx.fillStyle = "#f3efe6";
-    ctx.strokeStyle = "#1a1916";
-    ctx.lineWidth = 1.3;
-    ctx.lineJoin = "round";
-    // Hotspot is the index fingertip (path starts at 1,-15), matching a
-    // real OS pointing-hand cursor so clicks land on the tip.
-    ctx.translate(-1, 15);
-    ctx.beginPath();
-    ctx.moveTo(1, -15);
-    ctx.quadraticCurveTo(-1.6, -15, -1.6, -12);
-    ctx.lineTo(-1.6, -2.6);
-    ctx.quadraticCurveTo(-3.4, -3.4, -4.6, -1.8);
-    ctx.quadraticCurveTo(-5.6, -0.6, -4.6, 1.4);
-    ctx.lineTo(-2.4, 5);
-    ctx.quadraticCurveTo(-6.4, 3.6, -8, 5.2);
-    ctx.quadraticCurveTo(-9.4, 6.6, -8, 8.4);
-    ctx.lineTo(-3.6, 12.4);
-    ctx.quadraticCurveTo(-1.6, 14.4, 2.4, 14.4);
-    ctx.lineTo(5.6, 14.4);
-    ctx.quadraticCurveTo(9.4, 14.4, 9.4, 10.2);
-    ctx.lineTo(9.4, -1.4);
-    ctx.quadraticCurveTo(9.4, -4, 6.6, -4);
-    ctx.quadraticCurveTo(4.6, -4, 4.6, -1.8);
-    ctx.lineTo(4.6, -12);
-    ctx.quadraticCurveTo(4.6, -15, 1, -15);
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.stroke();
-  } else if (style === "ring") {
-    const r = down ? 13 : 10;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = down ? 3.2 : 2.2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 2.4, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  } else if (style === "crosshair") {
-    const len = down ? 16 : 12;
-    const gap = 4;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(-len, 0);
-    ctx.lineTo(-gap, 0);
-    ctx.moveTo(gap, 0);
-    ctx.lineTo(len, 0);
-    ctx.moveTo(0, -len);
-    ctx.lineTo(0, -gap);
-    ctx.moveTo(0, gap);
-    ctx.lineTo(0, len);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, down ? 3.2 : 2.4, 0, Math.PI * 2);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
 // progress runs 0 (just clicked) to 1 (effect fully faded) over its window.
 export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
   const fade = 1 - progress;
@@ -430,6 +309,41 @@ export function drawClickEffect(ctx, style, x, y, progress, color, scale = 1) {
   ctx.restore();
 }
 
+// Fills the full w x h canvas behind the (possibly inset) video: a flat
+// color, a two-color gradient, or a softened cover-fit copy of the current
+// frame itself. blurPx applies to whichever style is active - it's a no-op
+// look for a flat color but softens gradient banding and is the whole point
+// for "blurred". Overfills by the blur radius so a blurred edge never peeks
+// past the canvas boundary.
+function drawBackground(ctx, video, bg, w, h, cropX, cropY, cropW, cropH) {
+  const blurPx = Math.max(0, Number(bg?.blurPx) || 0);
+  if (bg?.style === "blurred" && video.readyState >= 2) {
+    ctx.save();
+    ctx.filter = blurPx > 0 ? `blur(${blurPx}px) brightness(0.82)` : "brightness(0.82)";
+    const scale = Math.max(w / cropW, h / cropH) * 1.15;
+    const dw = cropW * scale;
+    const dh = cropH * scale;
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    ctx.restore();
+    return;
+  }
+  const colorA = bg?.colorA || "#1a1916";
+  const colorB = bg?.colorB || colorA;
+  ctx.save();
+  if (blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
+  if (bg?.style === "gradient") {
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, colorA);
+    grad.addColorStop(1, colorB);
+    ctx.fillStyle = grad;
+  } else {
+    ctx.fillStyle = colorA;
+  }
+  const pad = blurPx * 2;
+  ctx.fillRect(-pad, -pad, w + pad * 2, h + pad * 2);
+  ctx.restore();
+}
+
 export function drawFrame(ctx, video, camera, options = {}) {
   const srcW = video.videoWidth || 1280;
   const srcH = video.videoHeight || 720;
@@ -443,31 +357,47 @@ export function drawFrame(ctx, video, camera, options = {}) {
   if (ctx.canvas.width !== w) ctx.canvas.width = w;
   if (ctx.canvas.height !== h) ctx.canvas.height = h;
 
-  const localCam = toCropLocal(camera.x, camera.y, crop);
-  const focus = focusPoint({ ...camera, x: localCam.x, y: localCam.y }, w, h);
-
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "#1a1916";
-  ctx.fillRect(0, 0, w, h);
+  drawBackground(ctx, video, options.background, w, h, cropX, cropY, cropW, cropH);
+
+  // Padding insets the video within the canvas so the background shows
+  // around it. At padding 0 this is an identity offset - iw/ih equal w/h
+  // and every downstream calculation below is exactly what it was before.
+  const padding = clamp(options.background?.padding || 0, 0, 0.35);
+  const insetX = w * padding;
+  const insetY = h * padding;
+  const iw = w - insetX * 2;
+  const ih = h - insetY * 2;
+
+  const localCam = toCropLocal(camera.x, camera.y, crop);
+  const focus = focusPoint({ ...camera, x: localCam.x, y: localCam.y }, iw, ih);
+
   ctx.save();
-  ctx.translate(w / 2, h / 2);
+  ctx.translate(insetX, insetY);
+  if (padding > 0) {
+    ctx.beginPath();
+    ctx.rect(0, 0, iw, ih);
+    ctx.clip();
+  }
+  ctx.save();
+  ctx.translate(iw / 2, ih / 2);
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-focus.x, -focus.y);
   // 1:1 copy stays pixel-sharp; zoom or downscale uses high-quality resampling.
-  const resample = (camera.zoom || 1) > 1.001 || w !== cropW || h !== cropH;
+  const resample = (camera.zoom || 1) > 1.001 || iw !== cropW || ih !== cropH;
   ctx.imageSmoothingEnabled = resample;
   if (resample) ctx.imageSmoothingQuality = options.fast ? "medium" : "high";
   // Cropping samples straight from the source rect - the crop is a pixel
   // selection, never a scale-then-recrop, so it never loses sharpness.
-  if (video.readyState >= 2) ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, w, h);
+  if (video.readyState >= 2) ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, iw, ih);
   ctx.restore();
 
-  const overlayScale = Math.max(0.9, Math.min(w, h) / 1080);
+  const overlayScale = Math.max(0.9, Math.min(iw, ih) / 1080);
 
   if (options.focusGuide) {
     const guideLocal = toCropLocal(options.focusGuide.x, options.focusGuide.y, crop);
-    const gx = w / 2 + (guideLocal.x * w - focus.x) * camera.zoom;
-    const gy = h / 2 + (guideLocal.y * h - focus.y) * camera.zoom;
+    const gx = iw / 2 + (guideLocal.x * iw - focus.x) * camera.zoom;
+    const gy = ih / 2 + (guideLocal.y * ih - focus.y) * camera.zoom;
     ctx.beginPath();
     ctx.arc(gx, gy, 22 * overlayScale, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(224, 180, 74, 0.9)";
@@ -480,18 +410,13 @@ export function drawFrame(ctx, video, camera, options = {}) {
   if (options.clickEffects && options.clickEffects.length && options.clickStyle && options.clickStyle !== "none") {
     for (const effect of options.clickEffects) {
       const local = toCropLocal(effect.x, effect.y, crop);
-      const ex = w / 2 + (local.x * w - focus.x) * camera.zoom;
-      const ey = h / 2 + (local.y * h - focus.y) * camera.zoom;
+      const ex = iw / 2 + (local.x * iw - focus.x) * camera.zoom;
+      const ey = ih / 2 + (local.y * ih - focus.y) * camera.zoom;
       drawClickEffect(ctx, options.clickStyle, ex, ey, effect.progress, options.clickColor || "#e0b44a", overlayScale);
     }
   }
 
-  if (options.cursor && options.cursor.style && options.cursor.style !== "none") {
-    const cursorLocal = toCropLocal(options.cursor.x, options.cursor.y, crop);
-    const cx = w / 2 + (cursorLocal.x * w - focus.x) * camera.zoom;
-    const cy = h / 2 + (cursorLocal.y * h - focus.y) * camera.zoom;
-    drawCursorGlyph(ctx, options.cursor.style, cx, cy, Boolean(options.cursor.down), options.cursor.color, overlayScale);
-  }
+  ctx.restore();
 }
 
 export function sourceFromCanvasPoint(camera, canvas, clientX, clientY, crop) {

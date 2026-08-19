@@ -1,6 +1,8 @@
 import { Muxer, ArrayBufferTarget } from "./mp4-muxer.mjs";
-import { cameraAt, drawFrame, resetCameraCache, samplePointer, activeClickEffects } from "./compositor.js";
+import { cameraAt, drawFrame, resetCameraCache, activeClickEffects } from "./compositor.js";
 import { exportVideoBitrate } from "./encode.js";
+
+const CLICK_EFFECT_COLOR = "#e0b44a";
 
 function even(n) {
   const v = Math.max(2, Math.round(Number(n) || 0));
@@ -364,8 +366,7 @@ export async function renderOfflineExport({
   audioBlob,
   audioTracks,
   crop,
-  cursorStyle,
-  cursorColor,
+  background,
   clicks,
   clickEffectStyle,
   onProgress
@@ -430,9 +431,8 @@ export async function renderOfflineExport({
 
   let lastSource = -1;
   const keyEvery = Math.max(1, Math.round(fps * 2));
-  const drawOpts = { width, height, fast: true, crop, clickStyle: clickEffectStyle, clickColor: cursorColor };
+  const drawOpts = { width, height, fast: true, crop, background, clickStyle: clickEffectStyle, clickColor: CLICK_EFFECT_COLOR };
   const seekSlack = 0.45 / Math.max(24, fps);
-  const showCursor = cursorStyle && cursorStyle !== "none" && samples && samples.length;
   const showClickEffects = clickEffectStyle && clickEffectStyle !== "none" && clicks && clicks.length;
 
   try {
@@ -445,9 +445,6 @@ export async function renderOfflineExport({
       if (sourceTime - lastSource > 1) resetCameraCache();
       lastSource = sourceTime;
       const camera = cameraAt(sourceTime, clips, samples, motion);
-      drawOpts.cursor = showCursor
-        ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, sourceTime) }
-        : null;
       drawOpts.clickEffects = showClickEffects ? activeClickEffects(clicks, sourceTime) : null;
       drawFrame(ctx, video, camera, drawOpts);
       const timestamp = Math.round(outputTime * 1e6);

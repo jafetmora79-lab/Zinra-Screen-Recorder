@@ -96,12 +96,16 @@
           <span>Audio</span>
         </button>
         <button id="tabCursor" class="tool-tab" type="button">
-          <img class="ui-icon" src="icons/svg/cursor.svg" alt="" />
-          <span>Cursor</span>
+          <img class="ui-icon" src="icons/svg/effects.svg" alt="" />
+          <span>Effects</span>
         </button>
         <button id="tabCrop" class="tool-tab" type="button">
           <img class="ui-icon" src="icons/svg/crop.svg" alt="" />
           <span>Crop</span>
+        </button>
+        <button id="tabBackground" class="tool-tab" type="button">
+          <img class="ui-icon" src="icons/svg/blur.svg" alt="" />
+          <span>Background</span>
         </button>
         <button id="tabTrim" class="tool-tab" type="button">
           <img class="ui-icon" src="icons/svg/fit.svg" alt="" />
@@ -305,16 +309,6 @@
       </div>
 
       <div id="panelCursor" class="side-panel hidden">
-        <p class="panel-kicker">Cursor</p>
-        <p id="cursorDebugLine" class="cursor-debug-line"></p>
-        <p id="cursorPanelCopy" class="panel-copy">Tab recordings don't capture the real OS pointer. Draw a synthetic one, or leave it hidden.</p>
-        <p id="realCursorWarning" class="cursor-pro-note hidden">This take already shows your real cursor (recorded via Share tab), so a synthetic one is locked out — it would only double up. Record with the default "Start recording" instead if you want a Zinra cursor style.</p>
-        <div id="cursorPicker" class="cursor-picker"></div>
-        <p id="cursorProNote" class="cursor-pro-note hidden">That style is Pro. Pick a free style, or unlock Pro.</p>
-        <label id="cursorColorField" class="field">
-          <span>Color</span>
-          <input id="cursorColor" type="color" value="#e0b44a" />
-        </label>
         <p class="panel-kicker">On click</p>
         <p class="panel-copy">Plays a short effect at the exact spot and moment of each recorded click.</p>
         <div id="clickEffectPicker" class="cursor-picker"></div>
@@ -344,6 +338,37 @@
           </select>
         </label>
         <p class="panel-copy">Crops straight from the recording's full resolution, so nothing gets softer. Drag the preview to reposition the frame.</p>
+      </div>
+
+      <div id="panelBackground" class="side-panel hidden">
+        <p class="panel-kicker">Style</p>
+        <div id="backgroundStylePicker" class="seg-group"></div>
+        <p class="panel-copy">Shows in the padding around the recording.</p>
+
+        <div id="backgroundColorWrap">
+          <p class="panel-kicker">Color</p>
+          <div id="backgroundColorPicker" class="cursor-picker"></div>
+          <div class="field-row">
+            <label class="field">
+              <span id="backgroundColorALabel">Custom</span>
+              <input id="backgroundColorAInput" type="color" value="#1a1916" />
+            </label>
+            <label id="backgroundColorBField" class="field hidden">
+              <span>Color B</span>
+              <input id="backgroundColorBInput" type="color" value="#e0b44a" />
+            </label>
+          </div>
+        </div>
+
+        <p class="panel-kicker">Blur</p>
+        <div id="backgroundBlurPicker" class="seg-group"></div>
+
+        <p class="panel-kicker">Padding</p>
+        <label class="field">
+          <span>Amount <em id="backgroundPaddingVal">0%</em></span>
+          <input id="backgroundPaddingInput" type="range" min="0" max="0.35" step="0.01" value="0" />
+        </label>
+        <p class="panel-copy">Insets the recording so the background shows around it.</p>
       </div>
 
       <div id="panelTrim" class="side-panel hidden">

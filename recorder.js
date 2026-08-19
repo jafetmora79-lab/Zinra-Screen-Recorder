@@ -140,7 +140,7 @@ async function getDisplayStream() {
   }
 }
 
-async function begin(stream, settings, hasRealCursor = false) {
+async function begin(stream, settings) {
   mediaStream = stream;
   settingsCache = settings;
 
@@ -172,11 +172,7 @@ async function begin(stream, settings, hasRealCursor = false) {
     width: size.width,
     height: size.height,
     frameRate: fps,
-    mimeType: captureMime,
-    // Tab capture never includes the real OS cursor. Share tab/screen
-    // captures actual pixels, so a real cursor is already baked in - a
-    // synthetic Zinra cursor on top of that would double up.
-    hasRealCursor
+    mimeType: captureMime
   };
   recorder = createRecorder(stream, captureMime, size.width, size.height, fps);
   recorder.ondataavailable = (event) => {
@@ -334,7 +330,7 @@ shareBtn.addEventListener("click", async () => {
   try {
     const settings = await getSettings();
     const stream = await getDisplayStream();
-    await begin(stream, settings, true);
+    await begin(stream, settings);
   } catch (err) {
     showError(err.message || String(err));
   }

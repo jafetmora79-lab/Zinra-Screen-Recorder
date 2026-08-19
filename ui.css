@@ -193,9 +193,25 @@ select {
 .field input[type="number"]:focus,
 .field input[type="text"]:focus,
 select:focus {
-  border-color: rgba(94, 234, 212, 0.45);
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
+
+/* Chrome/Windows renders <select>'s own dropdown popup with OS chrome no
+   matter what - that part can't be restyled from CSS. What we CAN fix is
+   everything else: the default arrow, hover/focus states, and padding, so
+   the 99%-of-the-time closed state reads as part of the app, not a form. */
+select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' fill='none' stroke='%239a9386' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+select:hover { border-color: var(--line-strong); background-color: var(--bg-4); }
 
 .numstep {
   position: relative;
@@ -615,24 +631,6 @@ body.is-live .preview-wrap {
 
 .cursor-tile.selected .cursor-tile-label { color: var(--text); }
 
-.cursor-tile.locked {
-  opacity: 0.35;
-  cursor: not-allowed;
-  filter: grayscale(1);
-}
-.cursor-tile.locked:hover { border-color: var(--line); background: var(--bg-3); }
-
-.cursor-debug-line {
-  margin: 0 0 10px;
-  padding: 7px 9px;
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: 7px;
-  font: 11px var(--mono);
-  color: var(--accent);
-  white-space: pre-line;
-}
-
 .cursor-tile-pro {
   position: absolute;
   top: 4px;
@@ -646,7 +644,54 @@ body.is-live .preview-wrap {
   padding: 2px 4px;
 }
 
-#cursorColorField input[type="color"] {
+.swatch-fill {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+}
+
+/* A row of mutually-exclusive options, smaller and inline vs. the top-level
+   tool-tabs - used wherever a panel needs its own segmented choice. */
+.seg-group {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 4px 0 10px;
+}
+
+.seg-btn {
+  appearance: none;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 7px 4px;
+  font: 650 11px/1 var(--font);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.seg-btn:hover { color: var(--text); }
+
+.seg-btn.active {
+  background: var(--bg-4);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--line-strong), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.field-row .field { flex: 1; margin: 0; }
+
+input[type="color"] {
   appearance: none;
   width: 100%;
   height: 34px;
@@ -656,8 +701,8 @@ body.is-live .preview-wrap {
   border-radius: 8px;
   cursor: pointer;
 }
-#cursorColorField input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-#cursorColorField input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 5px; }
 
 .editor-timeline {
   grid-column: 1 / -1;

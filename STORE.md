@@ -21,7 +21,7 @@ Free
 Pro — $7/month or $49/year
 • Unlimited exports
 • 1440p and 4K export, 60fps export
-• Hand, Ring, and Crosshair cursor styles
+• Wave and Spark click effects
 • Keep using the same editor
 
 Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then paste `https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/privacy.html` into the store listing. The marketing site is `index.html` at the same origin.
@@ -60,12 +60,12 @@ Record and edit are unlimited on Free. Exporting is the gate.
 **Free**
 - Record + editor, no account
 - 2 exports total, then Pro is required to export more
-- Up to 1080p 30fps, Arrow/Dot/Spotlight cursor styles
+- Up to 1080p 30fps, Ripple click effect
 
 **Pro — $7 / month or $49 / year**
 - Unlimited exports
 - 1080p60, 1440p, 4K
-- Hand, Ring, Crosshair cursor styles
+- Wave, Spark click effects
 - Future: saved presets, batch export
 
 **Status: `ENFORCE_PRO` is now `true`** — the gates are live in code (`settings.js`: `FREE_EXPORT_LIMIT`, `canExport`, `isProLocked`). What's still missing before this can actually make money:

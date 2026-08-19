@@ -1,7 +1,6 @@
 import {
   cameraAt,
   drawFrame,
-  drawCursorGlyph,
   drawClickEffect,
   activeClickEffects,
   samplePointer,
@@ -11,7 +10,16 @@ import {
 import { autoZoomClips } from "./camera-path.js";
 import { resolveExportSize } from "./encode.js";
 import { renderOfflineExport } from "./export-render.js";
-import { isProLocked, CURSOR_STYLES, CLICK_EFFECTS, canExport, remainingFreeExports } from "./settings.js";
+import {
+  isProLocked,
+  CLICK_EFFECTS,
+  canExport,
+  remainingFreeExports,
+  BACKGROUND_STYLES,
+  BACKGROUND_COLOR_PRESETS,
+  BACKGROUND_GRADIENT_PRESETS,
+  BLUR_LEVELS
+} from "./settings.js";
 
 const DEPTH_PRESETS = {
   shallow: 1.25,
@@ -260,17 +268,25 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   let selectedCutId = null;
   let audioTracks = [];
   let selectedAudioId = null;
-  // "Share tab instead" captures real screen pixels, so the real cursor is
-  // already permanently baked into this footage - defaulting to a synthetic
-  // style here would double up, and there'd be no way to undo it afterward.
-  const hasRealCursor = Boolean(capture.hasRealCursor);
-  let cursorStyle = hasRealCursor
-    ? "none"
-    : (CURSOR_STYLES[settings.cursorStyle] ? settings.cursorStyle : "arrow");
-  let cursorColor = /^#[0-9a-f]{6}$/i.test(settings.cursorColor || "") ? settings.cursorColor : "#e0b44a";
+  const CLICK_EFFECT_COLOR = "#e0b44a";
   let clickEffectStyle = CLICK_EFFECTS[settings.clickEffect] ? settings.clickEffect : "none";
   let crop = { x: 0, y: 0, w: 1, h: 1 };
   let cropDrag = null;
+  let backgroundStyle = BACKGROUND_STYLES[settings.background] ? settings.background : "solid";
+  let backgroundColorA = /^#[0-9a-f]{6}$/i.test(settings.backgroundColorA || "") ? settings.backgroundColorA : "#1a1916";
+  let backgroundColorB = /^#[0-9a-f]{6}$/i.test(settings.backgroundColorB || "") ? settings.backgroundColorB : "#e0b44a";
+  let backgroundBlur = BLUR_LEVELS[settings.backgroundBlur] ? settings.backgroundBlur : "none";
+  let backgroundPadding = Number.isFinite(Number(settings.backgroundPadding)) ? Math.min(0.35, Math.max(0, Number(settings.backgroundPadding))) : 0;
+
+  function backgroundOptions() {
+    return {
+      style: backgroundStyle,
+      colorA: backgroundColorA,
+      colorB: backgroundColorB,
+      blurPx: BLUR_LEVELS[backgroundBlur]?.px || 0,
+      padding: backgroundPadding
+    };
+  }
   let duration = 0;
   let trimStart = 0;
   let trimEnd = 0;
@@ -611,6 +627,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("tabAudio").classList.toggle("active", name === "audio");
     qs("tabCursor").classList.toggle("active", name === "cursor");
     qs("tabCrop").classList.toggle("active", name === "crop");
+    qs("tabBackground").classList.toggle("active", name === "background");
     qs("tabTrim").classList.toggle("active", name === "trim");
     qs("panelZoom").classList.toggle("hidden", name !== "zoom");
     qs("panelSpeed").classList.toggle("hidden", name !== "speed");
@@ -618,6 +635,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("panelAudio").classList.toggle("hidden", name !== "audio");
     qs("panelCursor").classList.toggle("hidden", name !== "cursor");
     qs("panelCrop").classList.toggle("hidden", name !== "crop");
+    qs("panelBackground").classList.toggle("hidden", name !== "background");
     qs("panelTrim").classList.toggle("hidden", name !== "trim");
   }
 
@@ -643,12 +661,10 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     const clip = selected();
     drawFrame(ctx, video, camera, {
       crop,
-      cursor: cursorStyle !== "none" && samples.length
-        ? { style: cursorStyle, color: cursorColor, ...samplePointer(samples, t) }
-        : null,
+      background: backgroundOptions(),
       clickEffects: clickEffectStyle !== "none" ? activeClickEffects(clicks, t) : null,
       clickStyle: clickEffectStyle,
-      clickColor: cursorColor,
+      clickColor: CLICK_EFFECT_COLOR,
       focusGuide: !exporting && clip && clip.followCursor === false ? { x: clip.x, y: clip.y } : null
     });
     syncAudioPreview(t);
@@ -1133,6 +1149,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   qs("tabAudio").addEventListener("click", () => showPanel("audio"));
   qs("tabCursor").addEventListener("click", () => showPanel("cursor"));
   qs("tabCrop").addEventListener("click", () => showPanel("crop"));
+  qs("tabBackground").addEventListener("click", () => showPanel("background"));
   qs("tabTrim").addEventListener("click", () => showPanel("trim"));
 
   playBtn.addEventListener("click", async () => {
@@ -1379,88 +1396,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     qs("followLagVal").textContent = value < 0.26 ? "Snappy" : value > 0.48 ? "Glide" : "Cinematic";
   });
 
-  const cursorTiles = [];
-  function refreshCursorPicker() {
-    for (const tile of cursorTiles) {
-      tile.el.classList.toggle("selected", tile.id === cursorStyle);
-      tile.el.classList.toggle("locked", Boolean(tile.locked));
-      const ctx2d = tile.ctx;
-      ctx2d.clearRect(0, 0, 40, 40);
-      if (tile.id === "none") {
-        ctx2d.strokeStyle = "#9a9386";
-        ctx2d.lineWidth = 1.6;
-        ctx2d.beginPath();
-        ctx2d.arc(20, 20, 10, 0, Math.PI * 2);
-        ctx2d.moveTo(13, 13);
-        ctx2d.lineTo(27, 27);
-        ctx2d.stroke();
-      } else {
-        drawCursorGlyph(ctx2d, tile.id, 20, 20, false, cursorColor);
-      }
-    }
-    qs("cursorProNote").classList.toggle("hidden", !isProLocked(cursorStyle, settings, CURSOR_STYLES));
-    qs("cursorColorField").classList.toggle("hidden", cursorStyle === "none");
-    updateCursorDebugLine();
-  }
-  function buildCursorPicker() {
-    const wrap = qs("cursorPicker");
-    wrap.innerHTML = "";
-    cursorTiles.length = 0;
-    for (const [id, preset] of Object.entries(CURSOR_STYLES)) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "cursor-tile";
-      btn.title = preset.label;
-      const previewCanvas = document.createElement("canvas");
-      previewCanvas.width = 40;
-      previewCanvas.height = 40;
-      const label = document.createElement("span");
-      label.className = "cursor-tile-label";
-      label.textContent = preset.label;
-      btn.append(previewCanvas, label);
-      if (preset.pro) {
-        const badge = document.createElement("span");
-        badge.className = "cursor-tile-pro";
-        badge.textContent = "PRO";
-        btn.appendChild(badge);
-      }
-      // Share-tab footage already has a real cursor baked into the pixels -
-      // there's never a good reason to layer a synthetic one on top of that,
-      // so those styles are locked out entirely rather than just defaulted
-      // away (a default can still be clicked past; a lock can't).
-      const locked = hasRealCursor && id !== "none";
-      if (locked) {
-        btn.disabled = true;
-        btn.title = "Locked - this take already has a real cursor baked in from Share tab.";
-      }
-      btn.addEventListener("click", () => {
-        if (locked) return;
-        cursorStyle = id;
-        chrome.storage.sync.set({ cursorStyle }).catch(() => {});
-        refreshCursorPicker();
-        render();
-      });
-      wrap.appendChild(btn);
-      cursorTiles.push({ id, el: btn, ctx: previewCanvas.getContext("2d"), locked });
-    }
-    refreshCursorPicker();
-  }
-  function updateCursorDebugLine() {
-    const line = qs("cursorDebugLine");
-    if (!line) return;
-    const version = (typeof chrome !== "undefined" && chrome.runtime?.getManifest)
-      ? chrome.runtime.getManifest().version
-      : "?";
-    const methodLabel = hasRealCursor ? "Share tab (real cursor in pixels)" : "Tab recording (no real cursor)";
-    line.textContent = `Zinra v${version}\nCapture: ${methodLabel}\nActive style: ${cursorStyle}`;
-  }
-  buildCursorPicker();
-  updateCursorDebugLine();
-  qs("realCursorWarning").classList.toggle("hidden", !hasRealCursor);
-  if (hasRealCursor) {
-    qs("cursorPanelCopy").textContent = "This take was recorded with Share tab, which captures your real cursor along with the page.";
-  }
-
   const clickEffectTiles = [];
   function refreshClickEffectPicker() {
     for (const tile of clickEffectTiles) {
@@ -1476,7 +1411,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         tile.ctx.stroke();
       } else {
         // A mid-animation frame reads as the clearest preview of each effect.
-        drawClickEffect(tile.ctx, tile.id, 20, 20, 0.35, cursorColor);
+        drawClickEffect(tile.ctx, tile.id, 20, 20, 0.35, CLICK_EFFECT_COLOR);
       }
     }
     qs("clickEffectProNote").classList.toggle("hidden", !isProLocked(clickEffectStyle, settings, CLICK_EFFECTS));
@@ -1516,20 +1451,124 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   }
   buildClickEffectPicker();
 
-  qs("cursorColor").value = cursorColor;
-  qs("cursorColor").addEventListener("input", () => {
-    cursorColor = qs("cursorColor").value;
-    chrome.storage.sync.set({ cursorColor }).catch(() => {});
-    refreshCursorPicker();
-    refreshClickEffectPicker();
-    render();
-  });
-
   qs("cropAspect").addEventListener("change", () => {
     const ratio = ASPECT_RATIOS[qs("cropAspect").value];
     crop = ratio ? cropForAspect(ratio, video.videoWidth, video.videoHeight) : { x: 0, y: 0, w: 1, h: 1 };
     render();
   });
+
+  function saveBackground() {
+    chrome.storage.sync.set({
+      background: backgroundStyle,
+      backgroundColorA,
+      backgroundColorB,
+      backgroundBlur,
+      backgroundPadding
+    }).catch(() => {});
+  }
+
+  function buildSegGroup(wrapId, registry, selectedId, onPick) {
+    const wrap = qs(wrapId);
+    wrap.innerHTML = "";
+    for (const [id, preset] of Object.entries(registry)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `seg-btn${id === selectedId ? " active" : ""}`;
+      btn.textContent = preset.label;
+      btn.addEventListener("click", () => onPick(id));
+      wrap.appendChild(btn);
+    }
+  }
+
+  function refreshBackgroundColorWrap() {
+    const isGradient = backgroundStyle === "gradient";
+    const isBlurred = backgroundStyle === "blurred";
+    qs("backgroundColorWrap").classList.toggle("hidden", isBlurred);
+    qs("backgroundColorBField").classList.toggle("hidden", !isGradient);
+    qs("backgroundColorALabel").textContent = isGradient ? "Color A" : "Custom";
+  }
+
+  function buildBackgroundColorPicker() {
+    const wrap = qs("backgroundColorPicker");
+    wrap.innerHTML = "";
+    const isGradient = backgroundStyle === "gradient";
+    const presets = isGradient ? BACKGROUND_GRADIENT_PRESETS : BACKGROUND_COLOR_PRESETS;
+    for (const preset of presets) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cursor-tile";
+      btn.title = preset.label;
+      const swatch = document.createElement("div");
+      swatch.className = "swatch-fill";
+      swatch.style.background = isGradient
+        ? `linear-gradient(135deg, ${preset.a}, ${preset.b})`
+        : preset.color;
+      const label = document.createElement("span");
+      label.className = "cursor-tile-label";
+      label.textContent = preset.label;
+      btn.append(swatch, label);
+      btn.addEventListener("click", () => {
+        if (isGradient) {
+          backgroundColorA = preset.a;
+          backgroundColorB = preset.b;
+        } else {
+          backgroundColorA = preset.color;
+        }
+        qs("backgroundColorAInput").value = backgroundColorA;
+        qs("backgroundColorBInput").value = backgroundColorB;
+        saveBackground();
+        render();
+      });
+      wrap.appendChild(btn);
+    }
+  }
+
+  function refreshBackgroundStylePicker() {
+    buildSegGroup("backgroundStylePicker", BACKGROUND_STYLES, backgroundStyle, (id) => {
+      backgroundStyle = id;
+      refreshBackgroundStylePicker();
+      refreshBackgroundColorWrap();
+      buildBackgroundColorPicker();
+      saveBackground();
+      render();
+    });
+  }
+
+  function refreshBackgroundBlurPicker() {
+    buildSegGroup("backgroundBlurPicker", BLUR_LEVELS, backgroundBlur, (id) => {
+      backgroundBlur = id;
+      refreshBackgroundBlurPicker();
+      saveBackground();
+      render();
+    });
+  }
+
+  refreshBackgroundStylePicker();
+  refreshBackgroundColorWrap();
+  buildBackgroundColorPicker();
+  refreshBackgroundBlurPicker();
+
+  qs("backgroundColorAInput").value = backgroundColorA;
+  qs("backgroundColorAInput").addEventListener("input", () => {
+    backgroundColorA = qs("backgroundColorAInput").value;
+    saveBackground();
+    render();
+  });
+  qs("backgroundColorBInput").value = backgroundColorB;
+  qs("backgroundColorBInput").addEventListener("input", () => {
+    backgroundColorB = qs("backgroundColorBInput").value;
+    saveBackground();
+    render();
+  });
+
+  qs("backgroundPaddingInput").value = backgroundPadding;
+  qs("backgroundPaddingVal").textContent = `${Math.round(backgroundPadding * 100)}%`;
+  qs("backgroundPaddingInput").addEventListener("input", () => {
+    backgroundPadding = clampRange(Number(qs("backgroundPaddingInput").value) || 0, 0, 0.35);
+    qs("backgroundPaddingVal").textContent = `${Math.round(backgroundPadding * 100)}%`;
+    render();
+  });
+  qs("backgroundPaddingInput").addEventListener("change", saveBackground);
 
   qs("fullscreenBtn").addEventListener("click", () => {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -1673,10 +1712,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       setExportStatus("That quality is Pro. Pick 1080p or below, or unlock Pro.");
       return;
     }
-    if (isProLocked(cursorStyle, settings, CURSOR_STYLES)) {
-      setExportStatus("That cursor style is Pro. Pick Arrow, Dot, or Hidden, or unlock Pro.");
-      return;
-    }
     if (isProLocked(clickEffectStyle, settings, CLICK_EFFECTS)) {
       setExportStatus("That click effect is Pro. Pick None or Ripple, or unlock Pro.");
       return;
@@ -1729,11 +1764,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         audioBlob,
         audioTracks,
         crop,
-        // Enforced here too, not just in the picker UI: a real cursor
-        // baked into share-tab footage must never get a synthetic one
-        // layered on top, no matter what cursorStyle currently holds.
-        cursorStyle: hasRealCursor ? "none" : cursorStyle,
-        cursorColor,
+        background: backgroundOptions(),
         clicks,
         clickEffectStyle,
         onProgress(pct, outputTime) {
