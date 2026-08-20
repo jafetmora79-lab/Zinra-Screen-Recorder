@@ -101,7 +101,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== "toggle-record") return;
-  if (recorderTabId) {
+  if (recorderTabId && recordingLive) {
     stopRecording();
     return;
   }
@@ -139,7 +139,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "get-state") {
     chrome.storage.sync.get(null).then((stored) => {
       sendResponse({
-        recording: Boolean(recorderTabId),
+        // recorderTabId alone isn't "recording" - it stays set once that tab
+        // flips from capturing to editing, which is exactly the state that
+        // needs a second recording to still be startable (e.g. filming the
+        // Studio itself). The popup's Stop-vs-Record UI has to key off
+        // whether a take is actually live, same fix as startRecording().
+        recording: recordingLive,
         recordingTabId,
         settings: migrateSettings(stored)
       });
