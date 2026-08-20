@@ -240,8 +240,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
-  if (msg.type === "enter-editor" && recorderTabId) {
-    chrome.tabs.update(recorderTabId, { active: true }).catch(() => {});
+  if (msg.type === "enter-editor") {
+    const target = sender.tab?.id || recorderTabId;
+    if (target) chrome.tabs.update(target, { active: true }).catch(() => {});
     sendResponse({ ok: true });
     return false;
   }
@@ -250,7 +251,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 async function startRecording(tabId, mode, options = {}) {
-  if (recorderTabId) {
+  // recorderTabId stays set after a recording finishes - that tab just
+  // switches from capturing to editing, it doesn't close. Only treat it as
+  // "already busy" while actually recording; otherwise a finished editor
+  // tab left open (e.g. to film the Studio itself in a second recording)
+  // would silently swallow every new "start" as a refocus of the old tab.
+  if (recorderTabId && recordingLive) {
     try {
       await chrome.tabs.update(recorderTabId, { active: true });
       return;
