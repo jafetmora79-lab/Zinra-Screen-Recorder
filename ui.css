@@ -1175,6 +1175,8 @@ body.is-live .timer { color: var(--danger); }
   border: 1px solid var(--line-strong);
 }
 .btn.ghost:hover:not(:disabled) { background: var(--bg-3); }
+.btn.small { padding: 7px 11px; font-size: 12px; }
+.file-btn { margin-bottom: 6px; }
 .btn.pro-cta {
   background: var(--accent-dim);
   color: var(--accent);

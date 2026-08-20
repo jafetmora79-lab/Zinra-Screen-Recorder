@@ -301,6 +301,9 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   let backgroundColorB = /^#[0-9a-f]{6}$/i.test(settings.backgroundColorB || "") ? settings.backgroundColorB : "#e0b44a";
   let backgroundBlur = BLUR_LEVELS[settings.backgroundBlur] ? settings.backgroundBlur : "none";
   let backgroundPadding = Number.isFinite(Number(settings.backgroundPadding)) ? Math.min(0.35, Math.max(0, Number(settings.backgroundPadding))) : 0;
+  // Not persisted to storage - images can run several MB, well past sync's
+  // quota, so an uploaded background only lasts this editing session.
+  let backgroundImage = null;
 
   function backgroundOptions() {
     return {
@@ -308,7 +311,8 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       colorA: backgroundColorA,
       colorB: backgroundColorB,
       blurPx: BLUR_LEVELS[backgroundBlur]?.px || 0,
-      padding: backgroundPadding
+      padding: backgroundPadding,
+      image: backgroundImage
     };
   }
 
@@ -1612,9 +1616,30 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   function refreshBackgroundColorWrap() {
     const isGradient = backgroundStyle === "gradient";
     const isBlurred = backgroundStyle === "blurred";
-    qs("backgroundColorWrap").classList.toggle("hidden", isBlurred);
+    const isImage = backgroundStyle === "image";
+    qs("backgroundColorWrap").classList.toggle("hidden", isBlurred || isImage);
     qs("backgroundColorBField").classList.toggle("hidden", !isGradient);
     qs("backgroundColorALabel").textContent = isGradient ? "Color A" : "Custom";
+  }
+
+  function refreshBackgroundImageWrap() {
+    qs("backgroundImageWrap").classList.toggle("hidden", backgroundStyle !== "image");
+  }
+
+  async function loadBackgroundImageFile(file) {
+    if (!file) return;
+    const status = qs("backgroundImageStatus");
+    try {
+      const bitmap = await createImageBitmap(file);
+      backgroundImage?.close?.();
+      backgroundImage = bitmap;
+      qs("backgroundImageName").textContent = file.name;
+      qs("backgroundImageClear").classList.remove("hidden");
+      status.textContent = "";
+      render();
+    } catch {
+      status.textContent = "Could not read that image.";
+    }
   }
 
   function buildBackgroundColorPicker() {
@@ -1657,6 +1682,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       backgroundStyle = id;
       refreshBackgroundStylePicker();
       refreshBackgroundColorWrap();
+      refreshBackgroundImageWrap();
       refreshBackgroundBlurAvailability();
       buildBackgroundColorPicker();
       saveBackground();
@@ -1674,7 +1700,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   }
 
   function refreshBackgroundBlurAvailability() {
-    const active = backgroundStyle === "blurred";
+    const active = backgroundStyle === "blurred" || backgroundStyle === "image";
     qs("backgroundBlurSection").classList.toggle("dim", !active);
     qs("backgroundBlurNote").classList.toggle("hidden", active);
     qs("backgroundBlurPicker").querySelectorAll(".seg-btn").forEach((btn) => {
@@ -1684,9 +1710,22 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
 
   refreshBackgroundStylePicker();
   refreshBackgroundColorWrap();
+  refreshBackgroundImageWrap();
   buildBackgroundColorPicker();
   refreshBackgroundBlurPicker();
   refreshBackgroundBlurAvailability();
+
+  qs("backgroundImageInput").addEventListener("change", (e) => {
+    loadBackgroundImageFile(e.target.files?.[0]);
+  });
+  qs("backgroundImageClear").addEventListener("click", () => {
+    backgroundImage?.close?.();
+    backgroundImage = null;
+    qs("backgroundImageInput").value = "";
+    qs("backgroundImageName").textContent = "No image chosen";
+    qs("backgroundImageClear").classList.add("hidden");
+    render();
+  });
 
   qs("backgroundColorAInput").value = backgroundColorA;
   qs("backgroundColorAInput").addEventListener("input", () => {
@@ -2005,8 +2044,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
 
 
   async function detectAndApplyLetterbox() {
-    const surface = capture.displaySurface || "";
-    const windowOrTab = surface === "window" || surface === "browser";
     if (!video.videoWidth || !video.videoHeight) return;
     const stamps = [0.04, Math.min(0.35, duration * 0.15), Math.min(0.8, duration * 0.4)];
     const frames = [];
@@ -2025,7 +2062,12 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     }
     try { video.currentTime = prev; } catch { /* ignore */ }
     if (!frames.length) return;
-    const next = detectLetterboxCrop(frames, { allowBlack: windowOrTab });
+    // Solid black/green margins get trimmed regardless of capture mode - a
+    // tab recording can have real black content, but the consensus-across-
+    // sampled-frames + 86%-uniform-column checks in detectLetterboxCrop
+    // already guard against trimming anything that isn't a genuine solid
+    // margin running the full height/width of the frame.
+    const next = detectLetterboxCrop(frames, { allowBlack: true });
     if (next.w > 0.992 && next.h > 0.992) return;
     contentCrop = next;
     const ratio = ASPECT_RATIOS[qs("cropAspect")?.value] || null;
