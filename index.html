@@ -324,47 +324,11 @@
   }
   .demo-viewport {
     position: relative;
-    aspect-ratio: 16 / 10.4;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
-    background: #e8ecef;
+    background: #0a0a0a;
   }
-  .demo-page {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: 92px 1fr;
-    transition: transform 1.15s cubic-bezier(0.65, 0, 0.24, 1);
-    transform-origin: 50% 50%;
-    will-change: transform;
-  }
-  .demo-side { background: #d5dee4; padding: 16px 12px; display: flex; flex-direction: column; gap: 10px; }
-  .demo-side-item { height: 8px; border-radius: 4px; background: #b7c3cc; }
-  .demo-side-item.active { background: var(--steel); width: 70%; }
-  .demo-main { padding: 18px 22px; background: #f4f6f8; color: #2a3138; font-family: var(--sans); }
-  .demo-kicker { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #7b8791; margin: 0 0 6px; font-weight: 700; }
-  .demo-h { font-size: 15px; font-weight: 800; margin: 0 0 14px; letter-spacing: -0.03em; }
-  .demo-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-  .demo-card {
-    background: #fff;
-    border: 1px solid #dfe4e8;
-    border-radius: 8px;
-    padding: 10px;
-  }
-  .demo-card em { display: block; font-style: normal; font-size: 9px; color: #8a949c; letter-spacing: 0.04em; text-transform: uppercase; }
-  .demo-card b { display: block; font-size: 13px; margin-top: 4px; }
-  .demo-row { height: 8px; border-radius: 4px; background: #dfe4e8; margin-bottom: 8px; }
-  .demo-row:nth-child(3) { width: 78%; }
-  .demo-cta-btn {
-    appearance: none;
-    border: 0;
-    margin-top: 14px;
-    padding: 9px 16px;
-    border-radius: 7px;
-    background: var(--steel);
-    color: #fff;
-    font: 700 12px var(--sans);
-    box-shadow: 0 8px 18px rgba(79, 111, 137, 0.35);
-  }
+  .demo-video { display: block; width: 100%; height: 100%; object-fit: cover; }
   .demo-hud {
     position: absolute;
     top: 10px;
@@ -385,31 +349,6 @@
     background: var(--clay);
     display: block;
     animation: pulse 1.4s ease-in-out infinite;
-  }
-  .demo-cursor {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    left: 72%;
-    top: 30%;
-    pointer-events: none;
-    transition: left 1.05s cubic-bezier(0.5, 0, 0.2, 1), top 1.05s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.4s ease;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
-    z-index: 5;
-  }
-  .demo-cursor svg { display: block; }
-  .demo-ripple {
-    position: absolute;
-    inset: -14px;
-    border-radius: 50%;
-    border: 2px solid var(--accent-fill);
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  .demo-cursor.clicked .demo-ripple { animation: ripple 0.55s ease-out; }
-  @keyframes ripple {
-    0% { opacity: 0.9; transform: scale(0.4); }
-    100% { opacity: 0; transform: scale(1.9); }
   }
   .demo-caption {
     display: flex;
@@ -525,125 +464,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: #f3efe6;
   }
-  .es-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
-    background: rgba(0, 0, 0, 0.28);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .es-brand { display: flex; align-items: center; gap: 8px; font-family: var(--sans); font-weight: 800; font-size: 13px; }
-  .es-time {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent-fill);
-    background: #11100e;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 999px;
-    padding: 4px 10px;
-  }
-  .es-export {
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 700;
-    background: var(--accent-fill);
-    color: #1a1916;
-    border-radius: 7px;
-    padding: 6px 10px;
-  }
-  .es-body { display: grid; grid-template-columns: 168px 1fr; min-height: 280px; }
-  @media (max-width: 700px) { .es-body { grid-template-columns: 1fr; } .es-side { display: none; } }
-  .es-side {
-    border-right: 1px solid rgba(255,255,255,0.08);
-    background: #211f1b;
-    padding: 12px;
-  }
-  .es-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
-  .es-tab {
-    font-family: var(--sans);
-    font-size: 9px;
-    font-weight: 700;
-    color: #9a9386;
-    text-align: center;
-    padding: 7px 2px;
-    border-radius: 7px;
-  }
-  .es-tab.on { background: #35322c; color: #f3efe6; }
-  .es-kicker { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; color: var(--accent-fill); text-transform: uppercase; margin: 0 0 8px; }
-  .es-copy { margin: 0; font-size: 11.5px; color: #9a9386; line-height: 1.45; }
-  .es-stage {
-    position: relative;
-    padding: 18px;
-    background:
-      radial-gradient(circle at 50% 40%, rgba(91, 124, 153, 0.14), transparent 48%),
-      #171613;
-    display: grid;
-    place-items: center;
-  }
-  .es-preview {
-    width: min(100%, 420px);
-    aspect-ratio: 16 / 9;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #e8ecef;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
-    position: relative;
-  }
-  .es-preview .demo-page { transform: scale(1.55); transform-origin: 78% 72%; }
-  .es-corners {
-    position: absolute;
-    inset: 10px;
-    pointer-events: none;
-    background:
-      linear-gradient(#e0b44a, #e0b44a) top left / 14px 1.5px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) top left / 1.5px 14px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) top right / 14px 1.5px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) top right / 1.5px 14px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) bottom left / 14px 1.5px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) bottom left / 1.5px 14px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) bottom right / 14px 1.5px no-repeat,
-      linear-gradient(#e0b44a, #e0b44a) bottom right / 1.5px 14px no-repeat;
-    opacity: 0.7;
-  }
-  .es-timeline {
-    border-top: 1px solid rgba(255,255,255,0.08);
-    background: #1a1916;
-    padding: 12px 14px 16px;
-  }
-  .em-tracks { display: flex; flex-direction: column; gap: 7px; position: relative; }
-  .em-track { display: flex; align-items: center; gap: 10px; }
-  .em-track-label { width: 52px; font-family: var(--mono); font-size: 9.5px; color: #a39c8d; text-transform: uppercase; letter-spacing: 0.08em; }
-  .em-lane { flex: 1; height: 26px; background: #2c2a25; border-radius: 6px; position: relative; }
-  .em-clip { position: absolute; top: 3px; height: 20px; border-radius: 5px; }
-  .playhead {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 18%;
-    width: 2px;
-    background: var(--accent-fill);
-    pointer-events: none;
-    animation: scrub 6.4s linear infinite;
-    z-index: 2;
-  }
-  .playhead::before {
-    content: "";
-    position: absolute;
-    top: -2px;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    transform: translateX(-50%);
-    background: var(--accent-fill);
-    clip-path: polygon(50% 100%, 0 0, 100% 0);
-  }
-  @keyframes scrub {
-    0% { left: 4%; }
-    100% { left: 92%; }
-  }
-  .em-caption { margin: 14px 2px 0; font-family: var(--mono); font-size: 11.5px; color: #a39c8d; }
+  .editor-shot-video { display: block; width: 100%; aspect-ratio: 1920 / 896; object-fit: cover; }
 
   /* ===== Privacy band ===== */
   .privacy-band {
@@ -849,37 +670,12 @@
           <span class="demo-url">app.example.com/reports</span>
         </div>
         <div class="demo-viewport">
-          <div class="demo-hud" aria-hidden="true"><i></i> REC 00:08</div>
-          <div class="demo-page" id="demoPage">
-            <div class="demo-side">
-              <div class="demo-side-item"></div>
-              <div class="demo-side-item active"></div>
-              <div class="demo-side-item"></div>
-              <div class="demo-side-item"></div>
-              <div class="demo-side-item"></div>
-            </div>
-            <div class="demo-main">
-              <p class="demo-kicker">Pipeline</p>
-              <p class="demo-h">Q3 revenue report</p>
-              <div class="demo-cards">
-                <div class="demo-card"><em>Closed</em><b>$184k</b></div>
-                <div class="demo-card"><em>Open</em><b>$92k</b></div>
-                <div class="demo-card"><em>At risk</em><b>4 deals</b></div>
-              </div>
-              <div class="demo-row"></div>
-              <div class="demo-row"></div>
-              <div class="demo-row"></div>
-              <button class="demo-cta-btn" id="demoTarget">Generate report</button>
-            </div>
-          </div>
-          <div class="demo-cursor" id="demoCursor">
-            <div class="demo-ripple"></div>
-            <svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 1l5.2 12.8 2-5 5-2z" fill="#fff" stroke="#1a1916" stroke-width="1.1" stroke-linejoin="round"/></svg>
-          </div>
+          <div class="demo-hud" aria-hidden="true"><i></i> REC</div>
+          <video class="demo-video" src="media/zoom-demo.mp4" autoplay muted loop playsinline aria-hidden="true"></video>
         </div>
       </div>
       <div class="demo-caption">
-        <span><span class="live-dot"></span>Recording this tab</span>
+        <span><span class="live-dot"></span>Recorded with Zinra</span>
         <span>This is what punching in looks like</span>
       </div>
     </div>
@@ -1044,73 +840,8 @@
       <h2>What you’ll actually see.</h2>
       <p class="lede">Not a stock screenshot. The same tabs, tracks, and playhead as the extension — Zoom, Speed, Cut, Audio, Effects, Crop, Background, Trim.</p>
     </div>
-    <div class="editor-shot" aria-hidden="true">
-      <div class="es-top">
-        <div class="es-brand">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect x="3.5" y="5.5" width="20" height="15" rx="3.5" stroke="#e0b44a" stroke-width="2"/>
-            <rect x="8.5" y="11.5" width="20" height="15" rx="3.5" stroke="#f3efe6" stroke-width="2"/>
-          </svg>
-          Zinra
-        </div>
-        <span class="es-time">00:08.40 / 01:12.00</span>
-        <span class="es-export">Export · 1080p</span>
-      </div>
-      <div class="es-body">
-        <aside class="es-side">
-          <div class="es-tabs">
-            <span class="es-tab on">Zoom</span>
-            <span class="es-tab">Speed</span>
-            <span class="es-tab">Cut</span>
-            <span class="es-tab">Audio</span>
-          </div>
-          <p class="es-kicker">Segment</p>
-          <p class="es-copy">Standard 1.50× on this click. Follow the mouse while zoomed. Save after you edit.</p>
-        </aside>
-        <div class="es-stage">
-          <div class="es-preview">
-            <div class="demo-page">
-              <div class="demo-side">
-                <div class="demo-side-item"></div>
-                <div class="demo-side-item active"></div>
-                <div class="demo-side-item"></div>
-              </div>
-              <div class="demo-main">
-                <p class="demo-kicker">Pipeline</p>
-                <p class="demo-h">Q3 revenue report</p>
-                <button class="demo-cta-btn">Generate report</button>
-              </div>
-            </div>
-            <div class="es-corners"></div>
-          </div>
-        </div>
-      </div>
-      <div class="es-timeline">
-        <div class="em-tracks">
-          <span class="playhead"></span>
-          <div class="em-track">
-            <span class="em-track-label">Video</span>
-            <div class="em-lane"><div class="em-clip" style="left:0;width:100%;background:linear-gradient(90deg,#2a3142,#3a4458);"></div></div>
-          </div>
-          <div class="em-track">
-            <span class="em-track-label">Zoom</span>
-            <div class="em-lane"><div class="em-clip" style="left:14%;width:22%;background:var(--steel);"></div><div class="em-clip" style="left:58%;width:16%;background:var(--steel);"></div></div>
-          </div>
-          <div class="em-track">
-            <span class="em-track-label">Speed</span>
-            <div class="em-lane"><div class="em-clip" style="left:40%;width:14%;background:var(--leaf);"></div></div>
-          </div>
-          <div class="em-track">
-            <span class="em-track-label">Cut</span>
-            <div class="em-lane"><div class="em-clip" style="left:76%;width:9%;background:var(--clay);"></div></div>
-          </div>
-          <div class="em-track">
-            <span class="em-track-label">Audio</span>
-            <div class="em-lane"><div class="em-clip" style="left:4%;width:60%;background:var(--bronze);"></div></div>
-          </div>
-        </div>
-        <p class="em-caption">The actual tracks in Zinra’s timeline.</p>
-      </div>
+    <div class="editor-shot">
+      <video class="editor-shot-video" src="media/editor-demo.mp4" autoplay muted loop playsinline aria-hidden="true"></video>
     </div>
   </section>
 
@@ -1334,59 +1065,6 @@
       });
     }
 
-    var page = document.getElementById("demoPage");
-    var cursor = document.getElementById("demoCursor");
-    var target = document.getElementById("demoTarget");
-    var viewport = cursor && cursor.closest(".demo-viewport");
-    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!page || !cursor || !target || !viewport) return;
-
-    function pointAt(el) {
-      var vr = viewport.getBoundingClientRect();
-      var er = el.getBoundingClientRect();
-      return {
-        xPct: ((er.left + er.width / 2 - vr.left) / vr.width) * 100,
-        yPct: ((er.top + er.height / 2 - vr.top) / vr.height) * 100
-      };
-    }
-
-    if (reduced) {
-      var p = pointAt(target);
-      page.style.transformOrigin = p.xPct + "% " + p.yPct + "%";
-      page.style.transform = "scale(1.7)";
-      cursor.style.opacity = "0";
-      return;
-    }
-
-    function cycle() {
-      cursor.style.opacity = "1";
-      cursor.style.left = "78%";
-      cursor.style.top = "26%";
-      cursor.classList.remove("clicked");
-      page.style.transform = "scale(1)";
-
-      requestAnimationFrame(function () {
-        var p = pointAt(target);
-        page.style.transformOrigin = p.xPct + "% " + p.yPct + "%";
-        cursor.style.left = p.xPct + "%";
-        cursor.style.top = p.yPct + "%";
-
-        setTimeout(function () { cursor.classList.add("clicked"); page.style.transform = "scale(1.75)"; }, 1050);
-        setTimeout(function () { cursor.style.opacity = "0"; }, 2400);
-        setTimeout(function () { page.style.transform = "scale(1)"; }, 3600);
-      });
-    }
-
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          cycle();
-          setInterval(cycle, 5200);
-          io.disconnect();
-        }
-      });
-    }, { threshold: 0.4 });
-    io.observe(viewport);
   })();
 </script>
 </body>
