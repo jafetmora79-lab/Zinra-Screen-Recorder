@@ -1,4 +1,5 @@
-import { migrateSettings } from "./settings.js";
+import { migrateSettings, stripEntitlement } from "./settings.js";
+import { readEntitlement } from "./entitlement.js";
 
 let recordingTabId = null;
 let screenOriginTabId = null;
@@ -77,8 +78,9 @@ async function disarmTab(tabId) {
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-  const current = await chrome.storage.sync.get(null);
-  await chrome.storage.sync.set(migrateSettings(current));
+  const current = await readEntitlement();
+  await chrome.storage.sync.set(current);
+  await chrome.storage.local.set({ exportCount: current.exportCount }).catch(() => {});
   if (details.reason === "install") {
     chrome.tabs.create({ url: "https://jafetmora79-lab.github.io/Zinra-Screen-Recorder/playground.html" }).catch(() => {});
   }
@@ -137,7 +139,7 @@ chrome.windows.onRemoved.addListener((id) => {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "get-state") {
-    chrome.storage.sync.get(null).then((stored) => {
+    readEntitlement().then((settings) => {
       sendResponse({
         // recorderTabId alone isn't "recording" - it stays set once that tab
         // flips from capturing to editing, which is exactly the state that
@@ -146,7 +148,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // whether a take is actually live, same fix as startRecording().
         recording: recordingLive,
         recordingTabId,
-        settings: migrateSettings(stored)
+        settings
       });
     });
     return true;
@@ -154,7 +156,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "save-settings") {
     chrome.storage.sync.get(null).then((stored) => {
-      return chrome.storage.sync.set(migrateSettings({ ...stored, ...msg.settings }));
+      const incoming = stripEntitlement(msg.settings || {});
+      return chrome.storage.sync.set(migrateSettings({ ...stored, ...incoming }));
     }).then(() => sendResponse({ ok: true }));
     return true;
   }

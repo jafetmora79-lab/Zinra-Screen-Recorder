@@ -8,7 +8,8 @@ import {
   trackSize
 } from "./encode.js";
 
-import { DEFAULTS, migrateSettings } from "./settings.js";
+import { DEFAULTS } from "./settings.js";
+import { readEntitlement } from "./entitlement.js";
 
 const livePreview = document.getElementById("livePreview");
 const camHud = document.getElementById("camHud");
@@ -65,8 +66,7 @@ function formatTime(ms) {
 }
 
 async function getSettings() {
-  const stored = await chrome.storage.sync.get(null);
-  return migrateSettings(stored);
+  return readEntitlement();
 }
 
 async function requestStreamId() {
