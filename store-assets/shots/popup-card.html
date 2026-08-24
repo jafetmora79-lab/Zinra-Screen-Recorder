@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zinra popup card</title>
+  <link rel="stylesheet" href="../../ui.css" />
+  <style>
+    html, body {
+      margin: 0;
+      background: #1a1916;
+      width: 392px;
+      min-height: 720px;
+    }
+  </style>
+</head>
+<body>
+  <div class="popup-body" style="width:360px;padding:16px;">
+    <header class="brand-head">
+      <div class="brand">
+        <img class="brand-mark" src="../../icons/icon48.png" width="28" height="28" alt="" />
+        <div>
+          <h1>Zinra</h1>
+          <p class="eyebrow">Studio</p>
+        </div>
+      </div>
+      <div class="popup-head-actions">
+        <button class="btn pro-cta" type="button">Get Pro</button>
+        <span class="hud-chip idle">Ready</span>
+      </div>
+    </header>
+    <section class="card">
+      <label class="check">
+        <input type="checkbox" checked />
+        <span class="check-copy">
+          <img class="ui-icon" src="../../icons/svg/auto-zoom.svg" alt="" />
+          Mark a zoom on each click
+        </span>
+      </label>
+      <label class="field">
+        <span>Zoom depth <em>1.50×</em></span>
+        <input type="range" min="1.2" max="2.6" step="0.05" value="1.5" />
+      </label>
+      <label class="field">
+        <span>Zoom length <em>2.2s</em></span>
+        <input type="range" min="0.8" max="4" step="0.1" value="2.2" />
+      </label>
+      <label class="check">
+        <input type="checkbox" checked />
+        <span class="check-copy">
+          <img class="ui-icon" src="../../icons/svg/mic.svg" alt="" />
+          Include tab audio
+        </span>
+      </label>
+      <label class="check">
+        <input type="checkbox" />
+        <span class="check-copy">
+          <img class="ui-icon" src="../../icons/svg/camera.svg" alt="" />
+          Include camera
+        </span>
+      </label>
+      <label class="field">
+        <span>
+          <span class="check-copy">
+            <img class="ui-icon" src="../../icons/svg/settings.svg" alt="" />
+            Export quality
+          </span>
+        </span>
+        <select>
+          <option selected>1080p</option>
+        </select>
+      </label>
+    </section>
+    <div class="actions">
+      <button class="btn primary record-cta" type="button">
+        <img class="ui-icon" src="../../icons/svg/record.svg" alt="" />
+        <span class="btn-label">Record this page</span>
+      </button>
+      <button class="btn ghost record-cta" type="button">
+        <img class="ui-icon" src="../../icons/svg/share.svg" alt="" />
+        <span class="btn-label">Record my screen</span>
+      </button>
+    </div>
+    <p class="fine pro-note">2 free exports. 4K, 60fps, and extra click effects are Pro.</p>
+  </div>
+  <script>window.__SHOT_READY__ = true;</script>
+</body>
+</html>
