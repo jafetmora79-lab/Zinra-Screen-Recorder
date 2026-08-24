@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Zinra</title>
+  <meta name="robots" content="noindex">
+</head>
+<body>
+<script>
+(function () {
+  var KEY = "zinra.entitlement.v1";
+
+  function readCount() {
+    try {
+      var data = JSON.parse(localStorage.getItem(KEY) || "{}");
+      var n = Number(data.exportCount);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  function writeCount(count) {
+    var next = Math.max(readCount(), Number(count) || 0);
+    localStorage.setItem(KEY, JSON.stringify({ exportCount: next }));
+    return next;
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.origin || event.origin.indexOf("chrome-extension://") !== 0) return;
+    var msg = event.data || {};
+    if (msg.type === "zinra-entitlement-get") {
+      event.source.postMessage({ type: "zinra-entitlement", exportCount: readCount() }, event.origin);
+      return;
+    }
+    if (msg.type === "zinra-entitlement-set") {
+      event.source.postMessage({ type: "zinra-entitlement", exportCount: writeCount(msg.exportCount) }, event.origin);
+    }
+  });
+})();
+</script>
+</body>
+</html>

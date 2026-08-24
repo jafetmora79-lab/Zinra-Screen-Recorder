@@ -96,16 +96,41 @@ export function migrateSettings(stored = {}) {
   const padding = Number(next.backgroundPadding);
   next.backgroundPadding = Number.isFinite(padding) ? Math.min(0.35, Math.max(0, padding)) : 0;
   next.includeCamera = Boolean(next.includeCamera);
-  next.pro = Boolean(next.pro);
   const count = Number(next.exportCount);
   next.exportCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+  next.licenseKey = typeof next.licenseKey === "string" && next.licenseKey.trim()
+    ? next.licenseKey.trim()
+    : null;
+  // A lone `pro: true` in storage is not a license. DevTools / a crafted
+  // save-settings payload used to flip this and skip the paywall.
+  next.pro = Boolean(next.pro && next.licenseKey);
   return next;
+}
+
+export const ENTITLEMENT_KEYS = ["pro", "licenseKey", "exportCount"];
+
+export function stripEntitlement(incoming = {}) {
+  const next = { ...incoming };
+  for (const key of ENTITLEMENT_KEYS) delete next[key];
+  return next;
+}
+
+export function mergeExportCount(...counts) {
+  return counts.reduce((max, value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return max;
+    return Math.max(max, Math.floor(n));
+  }, 0);
+}
+
+export function isPro(settings) {
+  return Boolean(settings?.pro && settings?.licenseKey);
 }
 
 export function isProLocked(id, settings, registry = QUALITY_PRESETS) {
   if (!ENFORCE_PRO) return false;
   const preset = registry[id];
-  return Boolean(preset?.pro) && !settings?.pro;
+  return Boolean(preset?.pro) && !isPro(settings);
 }
 
 export function remainingFreeExports(settings) {
@@ -114,5 +139,5 @@ export function remainingFreeExports(settings) {
 
 export function canExport(settings) {
   if (!ENFORCE_PRO) return true;
-  return Boolean(settings?.pro) || remainingFreeExports(settings) > 0;
+  return isPro(settings) || remainingFreeExports(settings) > 0;
 }
