@@ -56,36 +56,52 @@ def save_rgb(im: Image.Image, path: Path):
     print(f"wrote {path.relative_to(ROOT)} {im.size}")
 
 
+SLOGAN = "Zoom that follows the click."
+SUPPORT = "Record a tab or screen. The MP4 never leaves your machine."
+
+
+def draw_wordmark(draw, x, y, word_size, studio_size):
+    """Zinra + Studio on one baseline. Returns (width, height, baseline_y)."""
+    word = font("Inter-Bold.ttf", word_size)
+    studio = font("Inter-Medium.ttf", studio_size)
+    word_box = draw.textbbox((0, 0), "Zinra", font=word)
+    studio_box = draw.textbbox((0, 0), "Studio", font=studio)
+    word_w, word_h = word_box[2] - word_box[0], word_box[3] - word_box[1]
+    studio_w = studio_box[2] - studio_box[0]
+    gap = max(10, word_size // 5)
+    # Shared baseline so Studio sits beside Zinra, not under it.
+    baseline = y + word_h
+    draw.text((x, baseline), "Zinra", font=word, fill=IVORY, anchor="ls")
+    draw.text((x + word_w + gap, baseline), "Studio", font=studio, fill=DUST, anchor="ls")
+    return word_w + gap + studio_w, word_h, baseline
+
+
 def promo_small():
     w, h = 440, 280
     im = Image.new("RGB", (w, h), GRAPHITE)
     draw = ImageDraw.Draw(im)
     draw.rectangle((0, 0, w, 3), fill=SAFFRON)
 
-    word = font("Inter-Bold.ttf", 44)
-    kicker = font("Inter-SemiBold.ttf", 11)
-    tag = font("Inter-Medium.ttf", 18)
+    tag = font("Inter-Medium.ttf", 17)
+    mark = 64
+    word_size = 40
+    # Measure lockup before placing so the block can sit in the optical center.
+    probe = ImageDraw.Draw(Image.new("RGB", (w, h), GRAPHITE))
+    lockup_w, lockup_h, _ = draw_wordmark(probe, 0, 0, word_size, 22)
+    tag_w, tag_h = measure(draw, SLOGAN, tag)
+    rule_w = min(72, tag_w)
+    block_w = max(mark + 14 + lockup_w, tag_w)
+    block_h = max(mark, lockup_h) + 18 + 1 + 16 + tag_h
+    left = (w - block_w) // 2
+    top = (h - block_h) // 2 + 4
 
-    pad = 36
-    mark = 72
-    word_w, word_h = measure(draw, "Zinra", word)
-    kick_w, kick_h = measure(draw, "STUDIO", kicker)
-    tag_w, tag_h = measure(draw, "Record. Punch in. Export.", tag)
+    draw_mark(draw, left, top + (max(mark, lockup_h) - mark) // 2, mark, 3)
+    draw_wordmark(draw, left + mark + 14, top + (max(mark, lockup_h) - lockup_h) // 2, word_size, 22)
 
-    lockup_w = mark + 16 + max(word_w, kick_w)
-    # Word, then a hard gap, then STUDIO, then a larger gap, then the tagline.
-    lockup_h = word_h + 16 + kick_h
-    block_h = lockup_h + 28 + tag_h
-    top = (h - block_h) // 2
-    left = (w - lockup_w) // 2
-
-    draw_mark(draw, left, top + (lockup_h - mark) // 2, mark, 3)
-    tx = left + mark + 16
-    draw.text((tx, top), "Zinra", font=word, fill=IVORY)
-    studio_y = top + word_h + 16
-    draw.text((tx, studio_y), "STUDIO", font=kicker, fill=DUST)
-    tag_x = (w - tag_w) // 2
-    draw.text((tag_x, studio_y + kick_h + 26), "Record. Punch in. Export.", font=tag, fill=IVORY)
+    rule_y = top + max(mark, lockup_h) + 18
+    rule_x = (w - rule_w) // 2
+    draw.rectangle((rule_x, rule_y, rule_x + rule_w, rule_y + 2), fill=SAFFRON)
+    draw.text(((w - tag_w) // 2, rule_y + 16), SLOGAN, font=tag, fill=IVORY)
     save_rgb(im, OUT / "promo-small-440x280.png")
 
 
@@ -94,35 +110,32 @@ def promo_marquee():
     im = Image.new("RGB", (w, h), GRAPHITE)
     draw = ImageDraw.Draw(im)
     draw.rectangle((0, 0, w, 4), fill=SAFFRON)
-    # Quiet nested-frame watermark on the right, far from type.
     ghost = Image.new("RGB", (w, h), GRAPHITE)
     gdraw = ImageDraw.Draw(ghost)
-    draw_mark(gdraw, 980, 120, 340, 4)
+    draw_mark(gdraw, 1020, 140, 300, 4)
     ghost = ghost.filter(ImageFilter.GaussianBlur(0.4))
-    im = Image.blend(im, ghost, 0.18)
+    im = Image.blend(im, ghost, 0.14)
     draw = ImageDraw.Draw(im)
 
-    word = font("Inter-Bold.ttf", 92)
-    kicker = font("Inter-SemiBold.ttf", 16)
-    tag = font("Inter-Medium.ttf", 32)
-    chip = font("Inter-Medium.ttf", 16)
+    tag = font("Inter-Medium.ttf", 30)
+    support = font("Inter-Regular.ttf", 20)
+    chip = font("Inter-Medium.ttf", 15)
+    pad_x = 96
+    mark = 128
+    top = 128
 
-    pad_x = 88
-    mark = 150
-    top = 118
-    draw_mark(draw, pad_x, top + 18, mark, 5)
-    tx = pad_x + mark + 28
-    draw.text((tx, top), "Zinra", font=word, fill=IVORY)
-    _, word_h = measure(draw, "Zinra", word)
-    studio_y = top + word_h + 18
-    draw.text((tx, studio_y), "STUDIO", font=kicker, fill=DUST)
-    _, kick_h = measure(draw, "STUDIO", kicker)
-    draw.text((tx, studio_y + kick_h + 24), "Record a page. Render the zoom.", font=tag, fill=IVORY)
+    draw_mark(draw, pad_x, top, mark, 5)
+    _, lockup_h, _ = draw_wordmark(draw, pad_x + mark + 28, top + 22, 84, 36)
 
-    chips = ["Tab or screen", "Auto punch-in", "Offline MP4"]
-    y = 456
-    x = tx
-    for i, label in enumerate(chips):
+    slogan_y = top + max(mark, lockup_h + 18) + 36
+    draw.text((pad_x, slogan_y), SLOGAN, font=tag, fill=IVORY)
+    _, tag_h = measure(draw, SLOGAN, tag)
+    draw.text((pad_x, slogan_y + tag_h + 14), SUPPORT, font=support, fill=DUST)
+
+    chips = ["Tab or screen", "Auto zoom", "Nothing uploads"]
+    y = 452
+    x = pad_x
+    for label in chips:
         cw, ch = measure(draw, label, chip)
         box = (x, y, x + cw + 28, y + ch + 18)
         draw.rounded_rectangle(box, radius=999, outline=(58, 55, 48), width=1)
