@@ -32,8 +32,9 @@ Privacy: recordings stay on your machine. Host the repo on GitHub Pages, then pa
 
 - Extension icons: `icons/icon16.png`, `icon48.png`, `icon128.png` (from `app_icon_1024.png`)
 - Store icon: `icons/app_icon_1024.png` (also upload 128)
-- Screenshots: 1280×800 of popup, recorder, editor with a zoom clip selected, export dialog
-- Promotional tile (optional): 440×280 graphite + saffron mark + “Record. Punch in. Export.”
+- Screenshots (1280×800, 24-bit PNG): `store-assets/screenshot-01-popup-1280x800.png` through `screenshot-04-export-1280x800.png`. Regenerate with `python3 store-assets/generate-listing.py`.
+- Small tile: `store-assets/promo-small-440x280.png` (440×280)
+- Marquee: `store-assets/promo-marquee-1400x560.png` (1400×560)
 
 ## Permission justification (paste into the CWS review form)
 

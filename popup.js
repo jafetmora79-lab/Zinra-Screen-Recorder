@@ -1,4 +1,4 @@
-import { DEFAULTS, migrateSettings, remainingFreeExports } from "./settings.js";
+import { DEFAULTS, isPro, migrateSettings, remainingFreeExports } from "./settings.js";
 
 const fields = {
   autoMarkClicks: document.getElementById("autoMarkClicks"),
@@ -49,7 +49,7 @@ function refreshProChrome(settings) {
   const getPro = document.getElementById("getProBtn");
   const chip = document.getElementById("proChip");
   const note = document.getElementById("proNote");
-  const pro = Boolean(settings?.pro);
+  const pro = isPro(settings);
   getPro?.classList.toggle("hidden", pro);
   chip?.classList.toggle("hidden", !pro);
   if (!note) return;

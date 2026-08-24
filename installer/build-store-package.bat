@@ -29,7 +29,7 @@ rem Runtime-only files: the store package should contain what the extension
 rem actually loads, not the sideload installer, docs, or unused brand assets.
 robocopy "%CD%" "%STAGE%" /E ^
   /XD .git installer dist store-assets media ^
-  /XF "Install Zinra.bat" ZinraSetup.exe ZinraSetup.cs README.md BRAND.md STORE.md HANDOFF.md zinra-mark.svg privacy.html index.html demo.html og.svg .nojekyll ^
+  /XF "Install Zinra.bat" ZinraSetup.exe ZinraSetup.cs README.md BRAND.md STORE.md HANDOFF.md zinra-mark.svg privacy.html index.html demo.html entitlement.html og.svg .nojekyll ^
   /NFL /NDL /NJH /NJS /nc /ns /np >nul
 if errorlevel 8 (
   echo Copy failed.

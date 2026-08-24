@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zinra store shot · recorder</title>
+  <link rel="stylesheet" href="../../ui.css" />
+  <style>
+    html, body {
+      margin: 0;
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      background: #1a1916;
+    }
+    .stage {
+      width: 1280px;
+      height: 800px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(900px 420px at 50% 10%, rgba(224, 180, 74, 0.08), transparent 60%),
+        #1a1916;
+    }
+    .capture-hud { width: 440px; }
+    .preview-wrap {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      background: #111;
+      overflow: hidden;
+    }
+    .preview-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .rec-pip {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(26, 25, 22, 0.78);
+      color: #f3efe6;
+      font: 650 10px/1 Inter, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .rec-pip i {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #c45c4a;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <section class="capture-hud">
+      <header class="brand-head">
+        <div class="brand">
+          <img class="brand-mark" src="../../icons/icon48.png" width="28" height="28" alt="" />
+          <div>
+            <h1>Zinra</h1>
+            <p class="eyebrow">Studio</p>
+          </div>
+        </div>
+        <span class="hud-chip live">REC</span>
+      </header>
+      <div class="preview-wrap">
+        <div class="viewport-corners" aria-hidden="true"></div>
+        <img src="backdrop-page.jpg" alt="" />
+        <div class="rec-pip"><i></i> Rec</div>
+      </div>
+      <p class="timer">00:14</p>
+      <div class="actions">
+        <button class="btn danger" type="button">
+          <img class="ui-icon" src="../../icons/svg/stop.svg" alt="" />
+          <span class="btn-label">Stop &amp; edit</span>
+        </button>
+      </div>
+      <p class="fine">Keep this tab open while you use the page. Stopping opens the timeline so you can place zooms, speed ramps, and cuts.</p>
+    </section>
+  </div>
+  <script>document.documentElement.dataset.shotReady = "1"; window.__SHOT_READY__ = true;</script>
+</body>
+</html>

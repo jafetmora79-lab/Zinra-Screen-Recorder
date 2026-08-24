@@ -17,6 +17,7 @@ import { autoZoomClips } from "./camera-path.js";
 import { resolveExportSize } from "./encode.js";
 import { renderOfflineExport } from "./export-render.js";
 import {
+  isPro,
   isProLocked,
   CLICK_EFFECTS,
   canExport,
@@ -26,6 +27,7 @@ import {
   BACKGROUND_GRADIENT_PRESETS,
   BLUR_LEVELS
 } from "./settings.js";
+import { persistLicense, readEntitlement, writeExportCount } from "./entitlement.js";
 
 const DEPTH_PRESETS = {
   shallow: 1.25,
@@ -254,6 +256,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   recordView.classList.add("hidden");
   editView.classList.remove("hidden");
   chrome.runtime.sendMessage({ type: "enter-editor" }).catch(() => {});
+  readEntitlement().then((next) => {
+    Object.assign(settings, next);
+    updateProChrome();
+    updateExportCredits();
+  }).catch(() => {});
 
   const defaultZoom = Number(settings.clickZoom) || 1.5;
   const defaultDuration = Number(settings.zoomDuration) || 2.2;
@@ -1838,7 +1845,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   function updateExportCredits() {
     const note = qs("exportCreditsNote");
     if (!note) return;
-    if (settings.pro) {
+    if (isPro(settings)) {
       note.classList.add("hidden");
       return;
     }
@@ -1851,8 +1858,8 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
   function updateProChrome() {
     const getPro = qs("getProBtn");
     const chip = qs("proChip");
-    getPro?.classList.toggle("hidden", Boolean(settings.pro));
-    chip?.classList.toggle("hidden", !settings.pro);
+    getPro?.classList.toggle("hidden", isPro(settings));
+    chip?.classList.toggle("hidden", !isPro(settings));
     updateExportCredits();
   }
   updateProChrome();
@@ -1912,7 +1919,7 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
       const { key } = await activateLicense(qs("licenseKeyInput").value);
       settings.pro = true;
       settings.licenseKey = key;
-      await chrome.storage.sync.set({ pro: true, licenseKey: key }).catch(() => {});
+      await persistLicense(key);
       status.className = "license-status success";
       status.textContent = "Activated — thanks for going Pro.";
       updateProChrome();
@@ -1942,6 +1949,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
     if (trimDirty) saveTrim();
 
     const qualityId = qs("exportQuality")?.value || settings.quality || "1080p";
+    try {
+      Object.assign(settings, await readEntitlement());
+    } catch { /* use in-memory settings */ }
+    updateProChrome();
+    updateExportCredits();
     if (isProLocked(qualityId, settings)) {
       showPaywall({ reason: "quality", resumeExport: true });
       return;
@@ -2007,6 +2019,11 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         }
       });
       setExportStatus("Choose where to save the MP4…", 1);
+      if (!isPro(settings)) {
+        settings.exportCount = (Number(settings.exportCount) || 0) + 1;
+        await writeExportCount(settings.exportCount);
+        updateExportCredits();
+      }
       const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const filename = `zinra-${stamp}.mp4`;
       const url = URL.createObjectURL(result.blob);
@@ -2023,11 +2040,6 @@ export function openEditor({ blob, samples, clicks, focuses = [], scrolls = [], 
         (result.hasAudio ? "." : " (silent)."),
         1
       );
-      if (!settings.pro) {
-        settings.exportCount = (Number(settings.exportCount) || 0) + 1;
-        chrome.storage.sync.set({ exportCount: settings.exportCount }).catch(() => {});
-        updateExportCredits();
-      }
     } catch (err) {
       setExportStatus(err.message || "Export failed.");
     } finally {
