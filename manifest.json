@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Zinra",
-  "version": "1.9.5",
+  "version": "1.9.6",
   "minimum_chrome_version": "116",
   "description": "Record a Chrome tab, punch in on clicks, then export a cinematic MP4.",
   "icons": {
