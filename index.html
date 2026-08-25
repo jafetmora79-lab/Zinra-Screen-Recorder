@@ -42,7 +42,7 @@
     --bg-panel: #fbf8f1;
     --bg-raised: #ffffff;
     --ink: #1a1916;
-    --ink-dim: #6b6459;
+    --ink-dim: #534e47;
     --line: rgba(26, 25, 22, 0.13);
     --line-strong: rgba(26, 25, 22, 0.22);
     --accent: #a97a25;
@@ -98,7 +98,7 @@
     --bg-panel: #fbf8f1;
     --bg-raised: #ffffff;
     --ink: #1a1916;
-    --ink-dim: #6b6459;
+    --ink-dim: #534e47;
     --line: rgba(26, 25, 22, 0.13);
     --line-strong: rgba(26, 25, 22, 0.22);
     --accent: #a97a25;
@@ -271,7 +271,7 @@
     margin: 22px 0 30px;
   }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .hero-fine { margin-top: 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); letter-spacing: 0.01em; }
+  .hero-fine { margin-top: 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-dim); letter-spacing: 0.01em; line-height: 1.45; }
 
   .trust {
     display: grid;
@@ -305,7 +305,7 @@
     padding: 16px;
     box-shadow: var(--shadow);
   }
-  .demo-frame { border-radius: 11px; overflow: hidden; border: 1px solid var(--line-strong); }
+  .demo-frame { border-radius: 11px; overflow: hidden; border: 1px solid var(--line-strong); position: relative; }
   .demo-chrome {
     display: flex;
     align-items: center;
@@ -329,21 +329,18 @@
   }
   .demo-viewport {
     position: relative;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 1920 / 1018;
     overflow: hidden;
     background: #0a0a0a;
   }
   .demo-video {
     display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center bottom;
-    /* zoom-demo.mp4 has a ~62px capture letterbox on 1080p. Scale from the
-       bottom so that bar is clipped by the viewport and the page fills the
-       fake Chrome frame — zoomed frames stay centered. */
-    transform: scale(1.062);
-    transform-origin: center bottom;
+    object-position: center center;
   }
   .demo-hud {
     position: absolute;
