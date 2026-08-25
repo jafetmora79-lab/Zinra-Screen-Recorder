@@ -152,9 +152,13 @@
   h1, h2, h3 {
     font-family: var(--sans);
     font-weight: 800;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
     text-wrap: balance;
     margin: 0;
+    line-height: 1.18;
+    overflow: visible;
+    padding-block: 0.06em 0.1em;
+    padding-inline-end: 0.08em;
   }
 
   .eyebrow {
@@ -234,7 +238,7 @@
     gap: 16px;
   }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
-  .brand-word { font-family: var(--sans); font-weight: 800; font-size: 18px; letter-spacing: -0.03em; line-height: 1; }
+  .brand-word { font-family: var(--sans); font-weight: 800; font-size: 18px; letter-spacing: -0.03em; line-height: 1.15; }
   .brand-kicker { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--ink-dim); text-transform: uppercase; margin-top: 2px; }
   .brand-mark { width: 30px; height: 30px; flex: 0 0 auto; }
   .nav-links { display: flex; align-items: center; gap: 28px; font-family: var(--sans); font-size: 14px; font-weight: 600; }
@@ -251,12 +255,13 @@
     gap: 56px;
     align-items: center;
   }
+  .hero > * { min-width: 0; }
   @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 48px; } }
 
   .hero-copy .eyebrow { margin-bottom: 18px; }
   .hero h1 {
     font-size: clamp(2.4rem, 5vw, 3.6rem);
-    line-height: 1.04;
+    line-height: 1.14;
   }
   .hero-lede {
     font-size: 18px;
@@ -328,7 +333,18 @@
     overflow: hidden;
     background: #0a0a0a;
   }
-  .demo-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .demo-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    /* zoom-demo.mp4 has a ~62px capture letterbox on 1080p. Scale from the
+       bottom so that bar is clipped by the viewport and the page fills the
+       fake Chrome frame — zoomed frames stay centered. */
+    transform: scale(1.062);
+    transform-origin: center bottom;
+  }
   .demo-hud {
     position: absolute;
     top: 10px;
@@ -368,7 +384,7 @@
   .section { padding: 96px 0; border-top: 1px solid var(--line); }
   .section-head { max-width: 60ch; margin-bottom: 52px; }
   .section-head .eyebrow { margin-bottom: 14px; }
-  .section-head h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); }
+  .section-head h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.2; }
   .section-head p.lede { margin: 14px 0 0; color: var(--ink-dim); max-width: 54ch; }
 
   /* ===== How it works ===== */
@@ -441,6 +457,11 @@
   @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
   .feature-cell { background: var(--bg-panel); padding: 26px 24px; }
   .feature-swatch { width: 10px; height: 10px; border-radius: 3px; margin-bottom: 14px; }
+  .use-card h3, .feature-cell h3, .reel-item h3 {
+    overflow: visible;
+    line-height: 1.25;
+    padding-block: 0.04em 0.08em;
+  }
   .feature-cell h3 { font-size: 15.5px; font-weight: 750; margin-bottom: 8px; }
   .feature-cell p { margin: 0; font-size: 14.5px; color: var(--ink-dim); }
   .pro-tag {
@@ -456,6 +477,11 @@
   }
 
   /* ===== Editor mockup ===== */
+  .editor-bleed {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
   .editor-shot {
     background: #1a1916;
     border-radius: 16px;
@@ -463,8 +489,21 @@
     box-shadow: var(--shadow);
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: #f3efe6;
+    aspect-ratio: 1920 / 896;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .editor-shot-video { display: block; width: 100%; aspect-ratio: 1920 / 896; object-fit: cover; }
+  .editor-shot-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    object-fit: contain;
+    object-position: center center;
+    background: #1a1916;
+  }
 
   /* ===== Privacy band ===== */
   .privacy-band {
@@ -671,7 +710,7 @@
         </div>
         <div class="demo-viewport">
           <div class="demo-hud" aria-hidden="true"><i></i> REC</div>
-          <video class="demo-video" src="media/zoom-demo.mp4" autoplay muted loop playsinline aria-hidden="true"></video>
+          <video class="demo-video" src="media/zoom-demo.mp4" poster="media/zoom-demo-poster.jpg" autoplay muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
         </div>
       </div>
       <div class="demo-caption">
@@ -834,14 +873,18 @@
     </div>
   </section>
 
-  <section class="section wrap" id="editor">
-    <div class="section-head">
-      <p class="eyebrow">The editor</p>
-      <h2>What you’ll actually see.</h2>
-      <p class="lede">Not a stock screenshot. The same tabs, tracks, and playhead as the extension — Zoom, Speed, Cut, Audio, Effects, Crop, Background, Trim.</p>
+  <section class="section editor-section" id="editor">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">The editor</p>
+        <h2>What you’ll actually see.</h2>
+        <p class="lede">Not a stock screenshot. The same tabs, tracks, and playhead as the extension — Zoom, Speed, Cut, Audio, Effects, Crop, Background, Trim.</p>
+      </div>
     </div>
-    <div class="editor-shot">
-      <video class="editor-shot-video" src="media/editor-demo.mp4" autoplay muted loop playsinline aria-hidden="true"></video>
+    <div class="editor-bleed">
+      <div class="editor-shot">
+        <video class="editor-shot-video" src="media/editor-demo.mp4" poster="media/editor-demo-poster.jpg" autoplay muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+      </div>
     </div>
   </section>
 
@@ -1064,6 +1107,12 @@
         localStorage.setItem("zinra-theme", next);
       });
     }
+
+    document.querySelectorAll("video[autoplay]").forEach(function (video) {
+      var play = function () { video.play().catch(function () {}); };
+      if (video.readyState >= 2) play();
+      else video.addEventListener("canplay", play, { once: true });
+    });
 
   })();
 </script>
